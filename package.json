@@ -27,7 +27,10 @@
     "@commitlint/cli": "^19.6.1",
     "@commitlint/config-conventional": "^19.6.0",
     "husky": "^9.1.7",
-    "postcss": "^8.5.1"
+    "postcss": "^8.4.0",
+    "@types/node": "*",
+    "typescript": "^5.0.0",
+    "zod": "^3.24.1"
   },
   "commitlint": {
     "extends": [
@@ -66,6 +69,14 @@
         0,
         "always",
         100
+      ]
+    }
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "svelte",
+        "vue"
       ]
     }
   }
