@@ -3,7 +3,10 @@
   "include": ["./src/**/*"],
   "exclude": ["dist", "build", "node_modules"],
   "compilerOptions": {
-    "declarationMap": false,
-    "outDir": "dist"
+    "declarationMap": true,
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "rootDir": "./src"
   }
 }
