@@ -7,7 +7,10 @@ export default defineConfig((options: Options) => ({
   },
   minify: true,
   format: ["cjs", "esm"],
-  dts: true,
+  dts: {
+    resolve: true,
+  },
+  sourcemap: true,
   clean: true,
   external: ["react", "react-dom"],
   ...options,
