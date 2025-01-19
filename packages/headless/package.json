@@ -13,7 +13,7 @@
   "scripts": {
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "build": "tsup",
+    "build": "tsc --emitDeclarationOnly && tsup",
     "lint": "biome lint ./src",
     "format": "biome format ./src "
   },

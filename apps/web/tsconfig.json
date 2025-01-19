@@ -1,6 +1,5 @@
 {
-  "extends": "tsconfig/next.json",
-
+  "extends": "tsconfig/nextjs.json",
   "compilerOptions": {
     "plugins": [
       {
@@ -8,9 +7,16 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "novel": ["../../packages/headless/src"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
