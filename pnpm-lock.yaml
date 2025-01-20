@@ -89,7 +89,6 @@ importers:
     dependencies:
       '@ai-sdk/openai': 1.1.0_zod@3.24.1
       '@auth/core': 0.34.2
-      '@prisma/client': 6.2.1_prisma@6.2.1
       '@radix-ui/react-dialog': 1.1.4_uah2musuksu5kh3w2kypik6f24
       '@radix-ui/react-icons': 1.3.2_react@19.0.0
       '@radix-ui/react-popover': 1.1.4_uah2musuksu5kh3w2kypik6f24
@@ -117,7 +116,6 @@ importers:
       novel: link:../../packages/headless
       openai: 4.79.1_zod@3.24.1
       postcss: 8.5.1
-      prisma: 6.2.1
       prosemirror-model: 1.24.1
       react-markdown: 9.0.3_sxyau5tq6s5pjvweokh2pjpg2i
       sonner: 1.7.2_upmzqgzhjrquwzo2dphtigtdgi
@@ -127,6 +125,7 @@ importers:
       zod: 3.24.1
     devDependencies:
       '@biomejs/biome': 1.9.4
+      '@prisma/client': 6.2.1_prisma@6.2.1
       '@shadcn/ui': 0.0.4
       '@types/node': 20.11.24
       '@types/react': 19.0.7
@@ -135,6 +134,7 @@ importers:
       clsx: 2.1.1
       lucide-react: 0.358.0_react@19.0.0
       next: 15.1.5_upmzqgzhjrquwzo2dphtigtdgi
+      prisma: 6.2.1
       react: 19.0.0
       react-dom: 19.0.0_react@19.0.0
       tailwind-merge: 2.6.0
@@ -1514,15 +1514,15 @@ packages:
         optional: true
     dependencies:
       prisma: 6.2.1
-    dev: false
+    dev: true
 
   /@prisma/debug/6.2.1:
     resolution: {integrity: sha512-0KItvt39CmQxWkEw6oW+RQMD6RZ43SJWgEUnzxN8VC9ixMysa7MzZCZf22LCK5DSooiLNf8vM3LHZm/I/Ni7bQ==}
-    dev: false
+    dev: true
 
   /@prisma/engines-version/6.2.0-14.4123509d24aa4dede1e864b46351bf2790323b69:
     resolution: {integrity: sha512-7tw1qs/9GWSX6qbZs4He09TOTg1ff3gYsB3ubaVNN0Pp1zLm9NC5C5MZShtkz7TyQjx7blhpknB7HwEhlG+PrQ==}
-    dev: false
+    dev: true
 
   /@prisma/engines/6.2.1:
     resolution: {integrity: sha512-lTBNLJBCxVT9iP5I7Mn6GlwqAxTpS5qMERrhebkUhtXpGVkBNd/jHnNJBZQW4kGDCKaQg/r2vlJYkzOHnAb7ZQ==}
@@ -1532,7 +1532,7 @@ packages:
       '@prisma/engines-version': 6.2.0-14.4123509d24aa4dede1e864b46351bf2790323b69
       '@prisma/fetch-engine': 6.2.1
       '@prisma/get-platform': 6.2.1
-    dev: false
+    dev: true
 
   /@prisma/fetch-engine/6.2.1:
     resolution: {integrity: sha512-OO7O9d6Mrx2F9i+Gu1LW+DGXXyUFkP7OE5aj9iBfA/2jjDXEJjqa9X0ZmM9NZNo8Uo7ql6zKm6yjDcbAcRrw1A==}
@@ -1540,13 +1540,13 @@ packages:
       '@prisma/debug': 6.2.1
       '@prisma/engines-version': 6.2.0-14.4123509d24aa4dede1e864b46351bf2790323b69
       '@prisma/get-platform': 6.2.1
-    dev: false
+    dev: true
 
   /@prisma/get-platform/6.2.1:
     resolution: {integrity: sha512-zp53yvroPl5m5/gXYLz7tGCNG33bhG+JYCm74ohxOq1pPnrL47VQYFfF3RbTZ7TzGWCrR3EtoiYMywUBw7UK6Q==}
     dependencies:
       '@prisma/debug': 6.2.1
-    dev: false
+    dev: true
 
   /@radix-ui/number/1.1.0:
     resolution: {integrity: sha512-V3gRzhVNU1ldS5XhAPTom1fOIo4ccrjjJgmE+LI2h/WaFpHmx0MQApT+KZHnx8abG6Avtfcz4WoEciMnpFT3HQ==}
@@ -5303,7 +5303,7 @@ packages:
       '@prisma/engines': 6.2.1
     optionalDependencies:
       fsevents: 2.3.3
-    dev: false
+    dev: true
 
   /prompts/2.4.2:
     resolution: {integrity: sha512-NxNv/kLguCA7p3jE8oL2aEBsrJWgAakBpgmgK6lpPWV+WuOmY6r2/zbAVnP+T8bQlA0nzHXSJSJW0Hq7ylaD2Q==}
