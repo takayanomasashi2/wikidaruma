@@ -1,20 +1,18 @@
-"use client";
-import { defaultEditorContent } from "@/lib/content";
+import React, { useEffect, useState, useRef, useMemo } from "react";
+import type { JSONContent, EditorInstance } from "novel";
 import {
   EditorCommand,
   EditorCommandEmpty,
   EditorCommandItem,
   EditorCommandList,
   EditorContent,
-  type EditorInstance,
   EditorRoot,
   ImageResizer,
-  type JSONContent,
   handleCommandNavigation,
   handleImageDrop,
   handleImagePaste,
 } from "novel";
-import { useEffect, useState } from "react";
+import { Extension, Node } from '@tiptap/core';
 import { useDebouncedCallback } from "use-debounce";
 import { defaultExtensions } from "./extensions";
 import { ColorSelector } from "./selectors/color-selector";
@@ -22,66 +20,101 @@ import { LinkSelector } from "./selectors/link-selector";
 import { MathSelector } from "./selectors/math-selector";
 import { NodeSelector } from "./selectors/node-selector";
 import { Separator } from "./ui/separator";
-
 import GenerativeMenuSwitch from "./generative/generative-menu-switch";
 import { uploadFn } from "./image-upload";
 import { TextButtons } from "./selectors/text-buttons";
 import { slashCommand, suggestionItems } from "./slash-command";
 
-const hljs = require("highlight.js");
+export interface TailwindAdvancedEditorProps {
+  initialContent?: JSONContent | null;
+  onUpdate?: ({ editor }: { editor: EditorInstance }) => void;
+  extensions?: Array<Extension | Node>;
+}
 
-const extensions = [...defaultExtensions, slashCommand];
-
-const TailwindAdvancedEditor = () => {
-  const [initialContent, setInitialContent] = useState<null | JSONContent>(null);
+const TailwindAdvancedEditor: React.FC<TailwindAdvancedEditorProps> = ({
+  initialContent,
+  onUpdate,
+  extensions: customExtensions = [],
+}) => {
   const [saveStatus, setSaveStatus] = useState("Saved");
-  const [charsCount, setCharsCount] = useState();
+  const [charsCount, setCharsCount] = useState<number | undefined>();
+  const editorRef = useRef<EditorInstance | null>(null);
 
   const [openNode, setOpenNode] = useState(false);
   const [openColor, setOpenColor] = useState(false);
   const [openLink, setOpenLink] = useState(false);
   const [openAI, setOpenAI] = useState(false);
 
-  //Apply Codeblock Highlighting on the HTML from editor.getHTML()
-  const highlightCodeblocks = (content: string) => {
-    const doc = new DOMParser().parseFromString(content, "text/html");
-    doc.querySelectorAll("pre code").forEach((el) => {
-      // @ts-ignore
-      // https://highlightjs.readthedocs.io/en/latest/api.html?highlight=highlightElement#highlightelement
-      hljs.highlightElement(el);
-    });
-    return new XMLSerializer().serializeToString(doc);
-  };
+  // マウント時とアンマウント時にストレージをクリア
+  useEffect(() => {
+    const clearStorage = () => {
+      window.localStorage.removeItem("novel-content");
+      window.localStorage.removeItem("html-content");
+      window.localStorage.removeItem("markdown");
+    };
+
+    clearStorage();
+    
+    return () => {
+      clearStorage();
+      if (editorRef.current) {
+        editorRef.current.destroy();
+        editorRef.current = null;
+      }
+    };
+  }, []);
+
+  // initialContentが変更された時にエディタの内容を更新
+  useEffect(() => {
+    if (editorRef.current && initialContent) {
+      editorRef.current.commands.setContent(initialContent);
+    }
+  }, [initialContent]);
+
+  // 拡張機能の重複を防ぐ
+  const allExtensions = useMemo(() => {
+    const baseExtensions = defaultExtensions.filter(ext => 
+      !customExtensions.some(customExt => 
+        customExt.name === ext.name
+      )
+    );
+    return [...baseExtensions, slashCommand, ...customExtensions];
+  }, [customExtensions]);
 
   const debouncedUpdates = useDebouncedCallback(async (editor: EditorInstance) => {
     const json = editor.getJSON();
     setCharsCount(editor.storage.characterCount.words());
-    window.localStorage.setItem("html-content", highlightCodeblocks(editor.getHTML()));
-    window.localStorage.setItem("novel-content", JSON.stringify(json));
-    window.localStorage.setItem("markdown", editor.storage.markdown.getMarkdown());
+    
+    if (onUpdate) {
+      onUpdate({ editor });
+    }
     setSaveStatus("Saved");
   }, 500);
 
-  useEffect(() => {
-    const content = window.localStorage.getItem("novel-content");
-    if (content) setInitialContent(JSON.parse(content));
-    else setInitialContent(defaultEditorContent);
-  }, []);
+  const handleUpdate = ({ editor }: { editor: EditorInstance }) => {
+    editorRef.current = editor;
+    debouncedUpdates(editor);
+    setSaveStatus("Unsaved");
+  };
 
-  if (!initialContent) return null;
+  const handleCreate = ({ editor }: { editor: EditorInstance }) => {
+    editorRef.current = editor;
+  };
 
   return (
     <div className="relative w-full max-w-screen-lg">
       <div className="flex absolute right-5 top-5 z-10 mb-5 gap-2">
-        <div className="rounded-lg bg-accent px-2 py-1 text-sm text-muted-foreground">{saveStatus}</div>
+        <div className="rounded-lg bg-accent px-2 py-1 text-sm text-muted-foreground">
+          {saveStatus}
+        </div>
         <div className={charsCount ? "rounded-lg bg-accent px-2 py-1 text-sm text-muted-foreground" : "hidden"}>
           {charsCount} Words
         </div>
       </div>
       <EditorRoot>
         <EditorContent
-          initialContent={initialContent}
-          extensions={extensions}
+          initialContent={initialContent || { type: 'doc', content: [] }}
+          extensions={allExtensions}
           className="relative min-h-[500px] w-full max-w-screen-lg border-muted bg-background sm:mb-[calc(20vh)] sm:rounded-lg sm:border sm:shadow-lg"
           editorProps={{
             handleDOMEvents: {
@@ -90,18 +123,18 @@ const TailwindAdvancedEditor = () => {
             handlePaste: (view, event) => handleImagePaste(view, event, uploadFn),
             handleDrop: (view, event, _slice, moved) => handleImageDrop(view, event, moved, uploadFn),
             attributes: {
-              class:
-                "prose prose-lg dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full",
+              class: "prose prose-lg dark:prose-invert prose-headings:font-title font-default focus:outline-none max-w-full",
             },
           }}
-          onUpdate={({ editor }) => {
-            debouncedUpdates(editor);
-            setSaveStatus("Unsaved");
-          }}
+          onUpdate={handleUpdate}
+          onCreate={handleCreate}
           slotAfter={<ImageResizer />}
+          immediatelyRender={false}
         >
           <EditorCommand className="z-50 h-auto max-h-[330px] overflow-y-auto rounded-md border border-muted bg-background px-1 py-2 shadow-md transition-all">
-            <EditorCommandEmpty className="px-2 text-muted-foreground">No results</EditorCommandEmpty>
+            <EditorCommandEmpty className="px-2 text-muted-foreground">
+              No results
+            </EditorCommandEmpty>
             <EditorCommandList>
               {suggestionItems.map((item) => (
                 <EditorCommandItem
@@ -126,7 +159,6 @@ const TailwindAdvancedEditor = () => {
             <Separator orientation="vertical" />
             <NodeSelector open={openNode} onOpenChange={setOpenNode} />
             <Separator orientation="vertical" />
-
             <LinkSelector open={openLink} onOpenChange={setOpenLink} />
             <Separator orientation="vertical" />
             <MathSelector />
@@ -141,4 +173,4 @@ const TailwindAdvancedEditor = () => {
   );
 };
 
-export default TailwindAdvancedEditor;
+export default React.memo(TailwindAdvancedEditor);
