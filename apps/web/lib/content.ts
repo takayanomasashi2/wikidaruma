@@ -20,11 +20,11 @@ export const defaultEditorContent = {
               },
             },
           ],
-          text: "Novel",
+          text: "Wikiだるま",
         },
         {
           type: "text",
-          text: " is a Notion-style WYSIWYG editor with AI-powered autocompletion. Built with ",
+          text: "WikiだるまはAIパワード自動補完機能を備えたNotion風WYSIWYGエディタです。Tiptap、OpenAI、Vercel AI SDKで構築されています。",
         },
         {
           type: "text",
