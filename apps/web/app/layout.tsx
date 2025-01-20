@@ -5,6 +5,7 @@ import 'katex/dist/katex.min.css';
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import Providers from "./providers";
+import { Toaster } from "sonner";
 
 const title = "Wikiだるま - AIパワード自動補完機能付きNotion風エンベッドエディタ";
 const description = 
@@ -33,7 +34,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="ja" suppressHydrationWarning>
       <body>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <Toaster />
+        </Providers>        
       </body>
     </html>
   );

@@ -1,4 +1,7 @@
-export const defaultEditorContent = {
+// lib/content.ts
+import type { JSONContent } from "novel";
+
+export const defaultEditorContent: JSONContent = {
   type: "doc",
   content: [
     {
@@ -255,16 +258,6 @@ export const defaultEditorContent = {
           ],
         },
       ],
-    },
-    {
-      type: "image",
-      attrs: {
-        src: "https://public.blob.vercel-storage.com/pJrjXbdONOnAeZAZ/banner-2wQk82qTwyVgvlhTW21GIkWgqPGD2C.png",
-        alt: "banner.png",
-        title: "banner.png",
-        width: null,
-        height: null,
-      },
     },
     { type: "horizontalRule" },
     {
