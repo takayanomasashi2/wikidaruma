@@ -4,6 +4,10 @@
     "**/.env.*local"
   ],
   "globalEnv": [
+    "NEXTAUTH_URL",
+    "NEXTAUTH_SECRET",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
     "OPENAI_API_KEY"
   ],
   "tasks": {
@@ -20,6 +24,14 @@
         "dist/**",
         ".next/**",
         "!.next/cache/**"
+      ]
+    },
+    "prisma:generate": {
+      "inputs": [
+        "apps/web/prisma/schema.prisma"
+      ],
+      "outputs": [
+        "apps/web/node_modules/.prisma"
       ]
     },
     "typecheck": {
