@@ -6,9 +6,9 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import Providers from "./providers";
 
-const title = "Novel - Notion-style WYSIWYG editor with AI-powered autocompletions";
-const description =
-  "Novel is a Notion-style WYSIWYG editor with AI-powered autocompletions. Built with Tiptap, OpenAI, and Vercel AI SDK.";
+const title = "Wikiだるま - AIパワード自動補完機能付きNotion風エンベッドエディタ";
+const description = 
+  "WikiだるまはAIパワード自動補完機能を備えたNotion風WYSIWYGエディタです。Tiptap、OpenAI、Vercel AI SDKで構築されています。";
 
 export const metadata: Metadata = {
   title,
@@ -32,7 +32,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="ja" suppressHydrationWarning>
       <body>
         <Providers>{children}</Providers>
       </body>
