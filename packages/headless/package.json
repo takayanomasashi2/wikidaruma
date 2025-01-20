@@ -1,7 +1,7 @@
 {
   "name": "novel",
   "version": "1.0.0",
-  "description": "Notion-style WYSIWYG editor with AI-powered autocompletions",
+  "description": "AI搭載の自動補完機能を備えたNotion風WYSIWYG エディタ",
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist/index.cjs",
@@ -79,7 +79,6 @@
     "typescript": "^5.7.3"
   },
   "author": "Steven Tey <stevensteel97@gmail.com>",
-  "homepage": "https://novel.sh",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/steven-tey/novel.git"

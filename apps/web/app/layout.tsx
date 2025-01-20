@@ -15,14 +15,7 @@ export const metadata: Metadata = {
   description,
   openGraph: {
     title,
-    description,
-     images: [
-      {
-        url: '/Snowman.png', // 新しいOpen Graph画像のパス
-        width: 1200,
-        height: 630,
-      },
-    ],
+    description
   },
   twitter: {
     title,
