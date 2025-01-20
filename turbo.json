@@ -8,7 +8,8 @@
     "NEXTAUTH_SECRET",
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
-    "OPENAI_API_KEY"
+    "OPENAI_API_KEY",
+    "DATABASE_URL"
   ],
   "tasks": {
     "topo": {
@@ -18,6 +19,7 @@
     },
     "build": {
       "dependsOn": [
+        "prisma:generate",
         "^build"
       ],
       "outputs": [

@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "prisma:generate": "prisma generate --schema=./apps/web/prisma/schema.prisma",
-    "prebuild": "prisma generate --schema=./apps/web/prisma/schema.prisma",
+    "prisma:generate": "prisma generate",
+    "prebuild": "prisma generate",
     "build": "next build --debug",
     "start": "next start",
     "lint": "biome lint .",
