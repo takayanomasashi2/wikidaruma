@@ -1,7 +1,7 @@
 {
   "name": "novel",
   "version": "1.0.0",
-  "description": "Notion-style WYSIWYG editor with AI-powered autocompletions",
+  "description": "AI搭載の自動補完機能を備えたNotion風WYSIWYG エディタ",
   "license": "Apache-2.0",
   "type": "module",
   "main": "dist/index.cjs",
