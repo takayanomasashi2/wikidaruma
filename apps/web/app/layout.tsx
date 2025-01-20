@@ -16,6 +16,13 @@ export const metadata: Metadata = {
   openGraph: {
     title,
     description,
+     images: [
+      {
+        url: '/Snowman.png', // 新しいOpen Graph画像のパス
+        width: 1200,
+        height: 630,
+      },
+    ],
   },
   twitter: {
     title,
@@ -23,7 +30,6 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     creator: "@steventey",
   },
-  metadataBase: new URL("https://novel.sh"),
 };
 
 export const viewport: Viewport = {
