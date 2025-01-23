@@ -1,6 +1,6 @@
 // hooks/usePages.ts
 import { useState, useCallback } from 'react';
-import type { Page } from '@/types/page';
+import type { BlockType, Page } from '@/types/page';
 
 export function usePages() {
   const [pages, setPages] = useState<Page[]>([]);
@@ -38,11 +38,68 @@ export function usePages() {
       throw error;
     }
   }, []);
+ 
+ const convertContent = (jsonContent: any) => {
+  const blocks: { type: BlockType, content: string, order: number }[] = [];
+  let order = 0;
 
-  const updatePage = useCallback(async (id: string, updates: { title?: string; content?: string | null }) => {
+  const getHeadingType = (level: number): BlockType => {
+    switch (level) {
+      case 1: return 'heading1';
+      case 2: return 'heading2';
+      case 3: return 'heading3';
+      default: return 'heading';
+    }
+  };
+
+  const typeMap: Record<string, BlockType> = {
+    codeBlock: 'codeBlock',
+    bulletList: 'bulletList',
+    orderedList: 'orderedList',
+    taskList: 'taskList',
+    paragraph: 'paragraph',
+    text: 'text',
+    twitter: 'twitter',
+    math: 'math',
+    horizontalRule: 'horizontalRule'
+  };
+
+  const processNode = (node: any) => {
+    if (!node) return;
+
+    if (node.type === 'heading') {
+      blocks.push({
+        type: getHeadingType(node.attrs?.level),
+        content: node.content?.[0]?.text || '',
+        order: order++
+      });
+    } else {
+      blocks.push({
+        type: typeMap[node.type] || 'text',
+        content: node.text || node.attrs?.latex || node.attrs?.src || JSON.stringify(node),
+        order: order++
+      });
+    }
+
+    if (node.content) {
+      node.content.forEach(processNode);
+    }
+  };
+
+  processNode(JSON.parse(jsonContent));
+  return blocks;
+};
+
+const updatePage = useCallback(async (id: string, updates: { title?: string; content?: string | null }) => {
+ console.log("Processing content:", updates.content);
+ 
+ if (updates.content) {
+   const blocks = convertContent(updates.content);
+   console.log("Converted blocks:", blocks);
+ }
+
     try {
       setError(null);
-      console.log('Updating page:', { id, updates });
 
       const response = await fetch(`/api/pages/${id}`, {
         method: 'PATCH',
@@ -59,7 +116,6 @@ export function usePages() {
       }
 
       const updatedPage = await response.json();
-      console.log('Server response:', updatedPage);
 
       // 直接ステートを更新せず、fetchPagesを呼び出して最新の状態を取得
       await fetchPages();
