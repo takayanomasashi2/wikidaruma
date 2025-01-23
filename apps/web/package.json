@@ -41,6 +41,7 @@
     "@vercel/kv": "^1.0.1",
     "ai": "^3.0.12",
     "autoprefixer": "^10.4.17",
+    "axios": "^1.7.9",
     "cmdk": "^1.0.4",
     "eventsource-parser": "^1.1.2",
     "highlight.js": "^11.9.0",
