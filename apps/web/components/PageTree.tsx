@@ -1,8 +1,15 @@
-// components/PageTree.tsx
 "use client";
 
-import React, { useState } from 'react';
-import { ChevronRight, ChevronDown, File, Trash2, Edit, Check, X } from 'lucide-react';
+import React, { useState } from "react";
+import {
+  ChevronRight,
+  ChevronDown,
+  File,
+  Trash2,
+  Edit,
+  Check,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Page } from "@/types/page";
 
@@ -14,14 +21,14 @@ interface PageTreeProps {
   onUpdatePage: (id: string, updates: { title?: string }) => void;
 }
 
-const PageTreeItem = ({ 
-  page, 
+const PageTreeItem = ({
+  page,
   level = 0,
   selectedPageId,
   onSelectPage,
   onDeletePage,
-  onUpdatePage
-}: { 
+  onUpdatePage,
+}: {
   page: Page;
   level?: number;
   selectedPageId: string;
@@ -58,16 +65,15 @@ const PageTreeItem = ({
     setIsEditing(false);
   };
 
-  // ルートページ（parentIdがnull）かどうかを判定
   const isRootPage = page.parentId === null;
 
   return (
     <div className="w-full">
-      <div 
+      <div
         className={cn(
           "group flex items-center justify-between gap-2 p-2 hover:bg-accent rounded cursor-pointer",
           selectedPageId === page.id && "bg-accent",
-          isRootPage && "font-bold" // ルートページを強調
+          isRootPage && "font-bold"
         )}
         style={{ paddingLeft: `${level * 12 + 8}px` }}
         onClick={() => onSelectPage(page.id)}
@@ -81,14 +87,18 @@ const PageTreeItem = ({
               }}
               className="w-4 h-4 flex items-center justify-center"
             >
-              {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+              {isExpanded ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
+              )}
             </button>
           ) : (
             <File className="w-4 h-4 text-muted-foreground" />
           )}
-          
+
           {isEditing ? (
-            <div className="flex items-center gap-2 flex-grow">
+            <div className="flex items-center gap-2 flex-grow relative">
               <input
                 type="text"
                 value={editedTitle}
@@ -97,24 +107,27 @@ const PageTreeItem = ({
                 className="flex-grow border rounded px-2 py-1"
                 autoFocus
               />
-              <button 
-                onClick={handleEditSave}
-                className="text-green-500 hover:text-green-700"
-              >
-                <Check className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={handleEditCancel}
-                className="text-red-500 hover:text-red-700"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              {/* ボタンを絶対位置で固定 */}
+              <div className="absolute right-0 flex gap-2">
+                <button
+                  onClick={handleEditSave}
+                  className="text-green-500 hover:text-green-700"
+                >
+                  <Check className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={handleEditCancel}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ) : (
             <span className="text-sm flex-grow">{page.title}</span>
           )}
         </div>
-        
+
         <div className="flex items-center gap-1">
           {!isEditing && (
             <button
@@ -151,15 +164,14 @@ const PageTreeItem = ({
   );
 };
 
-export const PageTree = ({ 
-  pages, 
-  selectedPageId, 
+export const PageTree = ({
+  pages,
+  selectedPageId,
   onSelectPage,
   onDeletePage,
-  onUpdatePage
+  onUpdatePage,
 }: PageTreeProps) => {
-  // ルートページ（parentIdがnull）を先に表示
-  const rootPages = pages.filter(page => page.parentId === null);
+  const rootPages = pages.filter((page) => page.parentId === null);
 
   return (
     <div className="w-64 border-r border-muted h-full overflow-y-auto">

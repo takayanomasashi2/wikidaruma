@@ -187,22 +187,6 @@ export default function DashboardPage() {
   return (
     <div className="p-4 flex flex-col space-y-4">
       <div className="flex w-full max-w-screen-lg items-center gap-2 px-4 sm:mb-[calc(2vh)]">
-        <Button size="icon" variant="outline">
-          <a href="https://github.com/steven-tey/novel" target="_blank" rel="noreferrer">
-            <GithubIcon />
-          </a>
-        </Button>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button className="ml gap-2">
-              <BookOpen className="h-4 w-4" />
-              Usage in dialog
-            </Button>
-          </DialogTrigger>
-        </Dialog>
-        <Link href="/docs" className="ml-auto">
-          <Button variant="ghost">Documentation</Button>
-        </Link>
         <Menu />
       </div>
       <div className="flex space-x-2">
