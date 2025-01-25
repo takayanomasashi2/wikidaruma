@@ -6,6 +6,7 @@ import type { JSONContent, EditorInstance } from "novel";
 import type { TailwindAdvancedEditorProps } from "./tailwind/advanced-editor";
 import { PageLinkNode } from "@/lib/novel-extensions";
 import { Node } from "@tiptap/core";
+import { ChatBotWithImage } from "./ChatBot";
 
 const TailwindAdvancedEditor = dynamic<TailwindAdvancedEditorProps>(
   () => import("./tailwind/advanced-editor"),
@@ -87,6 +88,7 @@ export const NestedPageEditor: FC<NestedPageEditorProps> = ({
   }
 
   return (
+    <>
     <div className="flex h-full w-full">
       <PageTree
         pages={pages}
@@ -127,5 +129,7 @@ export const NestedPageEditor: FC<NestedPageEditorProps> = ({
         </div>
       </div>
     </div>
+    <ChatBotWithImage/>
+    </>
   );
 };

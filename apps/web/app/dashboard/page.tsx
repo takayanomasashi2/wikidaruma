@@ -12,7 +12,6 @@ import Menu from "@/components/tailwind/ui/menu";
 import { ScrollArea } from "@/components/tailwind/ui/scroll-area";
 import { BookOpen, GithubIcon } from "lucide-react";
 import Link from "next/link";
-import { ChatBot } from '@/components/ChatBot';
 
 
 export default function DashboardPage() {
@@ -216,7 +215,6 @@ export default function DashboardPage() {
           onUpdatePageTitle={(id, title) => updatePage(id, { title })}
         />
       )}
-      <ChatBot/>
     </div>
   );
 }
