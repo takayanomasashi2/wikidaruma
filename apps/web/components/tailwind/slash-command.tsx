@@ -27,8 +27,8 @@ export const suggestionItems = createSuggestionItems([
   //   },
   // },
   {
-    title: "Text",
-    description: "Just start typing with plain text.",
+    title: "テキスト",
+    description: "プレーンテキストでタイプを開始します。",
     searchTerms: ["p", "paragraph"],
     icon: <Text size={18} />,
     command: ({ editor, range }) => {
@@ -36,8 +36,8 @@ export const suggestionItems = createSuggestionItems([
     },
   },
   {
-    title: "To-do List",
-    description: "Track tasks with a to-do list.",
+    title: "ToDoリスト",
+    description: "タスクをトラックするためのToDoリスト。",
     searchTerms: ["todo", "task", "list", "check", "checkbox"],
     icon: <CheckSquare size={18} />,
     command: ({ editor, range }) => {
@@ -45,8 +45,8 @@ export const suggestionItems = createSuggestionItems([
     },
   },
   {
-    title: "Heading 1",
-    description: "Big section heading.",
+    title: "見出し1",
+    description: "大きなセクション見出し。",
     searchTerms: ["title", "big", "large"],
     icon: <Heading1 size={18} />,
     command: ({ editor, range }) => {
@@ -54,8 +54,8 @@ export const suggestionItems = createSuggestionItems([
     },
   },
   {
-    title: "Heading 2",
-    description: "Medium section heading.",
+    title: "見出し2",
+    description: "中くらいのセクション見出し。",
     searchTerms: ["subtitle", "medium"],
     icon: <Heading2 size={18} />,
     command: ({ editor, range }) => {
@@ -63,8 +63,8 @@ export const suggestionItems = createSuggestionItems([
     },
   },
   {
-    title: "Heading 3",
-    description: "Small section heading.",
+    title: "見出し3",
+    description: "小さいセクション見出し。",
     searchTerms: ["subtitle", "small"],
     icon: <Heading3 size={18} />,
     command: ({ editor, range }) => {
@@ -72,8 +72,8 @@ export const suggestionItems = createSuggestionItems([
     },
   },
   {
-    title: "Bullet List",
-    description: "Create a simple bullet list.",
+    title: "箇条書きリスト",
+    description: "シンプルな箇条書きリストを作成します。",
     searchTerms: ["unordered", "point"],
     icon: <List size={18} />,
     command: ({ editor, range }) => {
@@ -81,8 +81,8 @@ export const suggestionItems = createSuggestionItems([
     },
   },
   {
-    title: "Numbered List",
-    description: "Create a list with numbering.",
+    title: "番号付きリスト",
+    description: "番号付きのリストを作成します。",
     searchTerms: ["ordered"],
     icon: <ListOrdered size={18} />,
     command: ({ editor, range }) => {
@@ -90,23 +90,23 @@ export const suggestionItems = createSuggestionItems([
     },
   },
   {
-    title: "Quote",
-    description: "Capture a quote.",
+    title: "引用",
+    description: "引用をキャプチャします。",
     searchTerms: ["blockquote"],
     icon: <TextQuote size={18} />,
     command: ({ editor, range }) =>
       editor.chain().focus().deleteRange(range).toggleNode("paragraph", "paragraph").toggleBlockquote().run(),
   },
   {
-    title: "Code",
-    description: "Capture a code snippet.",
+    title: "コード",
+    description: "コードスニペットをキャプチャします。",
     searchTerms: ["codeblock"],
     icon: <Code size={18} />,
     command: ({ editor, range }) => editor.chain().focus().deleteRange(range).toggleCodeBlock().run(),
   },
   {
-    title: "Image",
-    description: "Upload an image from your computer.",
+    title: "画像",
+    description: "コンピューターから画像をアップロードします。",
     searchTerms: ["photo", "picture", "media"],
     icon: <ImageIcon size={18} />,
     command: ({ editor, range }) => {
@@ -126,12 +126,12 @@ export const suggestionItems = createSuggestionItems([
     },
   },
   {
-    title: "Youtube",
-    description: "Embed a Youtube video.",
+    title: "YouTube",
+    description: "YouTube動画を埋め込みます。",
     searchTerms: ["video", "youtube", "embed"],
     icon: <Youtube size={18} />,
     command: ({ editor, range }) => {
-      const videoLink = prompt("Please enter Youtube Video Link");
+      const videoLink = prompt("YouTubeのビデオリンクを入力してください");
       //From https://regexr.com/3dj5t
       const ytregex = new RegExp(
         /^((?:https?:)?\/\/)?((?:www|m)\.)?((?:youtube\.com|youtu.be))(\/(?:[\w\-]+\?v=|embed\/|v\/)?)([\w\-]+)(\S+)?$/,
@@ -148,18 +148,18 @@ export const suggestionItems = createSuggestionItems([
           .run();
       } else {
         if (videoLink !== null) {
-          alert("Please enter a correct Youtube Video Link");
+          alert("正しいYouTubeのビデオリンクを入力してください");
         }
       }
     },
   },
   {
     title: "Twitter",
-    description: "Embed a Tweet.",
+    description: "ツイートを埋め込みます。",
     searchTerms: ["twitter", "embed"],
     icon: <Twitter size={18} />,
     command: ({ editor, range }) => {
-      const tweetLink = prompt("Please enter Twitter Link");
+      const tweetLink = prompt("Twitterのリンクを入力してください");
       const tweetRegex = new RegExp(/^https?:\/\/(www\.)?x\.com\/([a-zA-Z0-9_]{1,15})(\/status\/(\d+))?(\/\S*)?$/);
 
       if (tweetRegex.test(tweetLink)) {
@@ -173,12 +173,13 @@ export const suggestionItems = createSuggestionItems([
           .run();
       } else {
         if (tweetLink !== null) {
-          alert("Please enter a correct Twitter Link");
+          alert("正しいTwitterのリンクを入力してください");
         }
       }
     },
   },
 ]);
+
 
 export const slashCommand = Command.configure({
   suggestion: {
