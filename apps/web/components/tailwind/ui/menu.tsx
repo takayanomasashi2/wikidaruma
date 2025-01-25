@@ -9,10 +9,10 @@ import Image from "next/image";
 import { Separator } from "./separator";
 
 const appearances = [
-  {
-    theme: "System",
-    icon: <Monitor className="h-4 w-4" />,
-  },
+  // {
+  //   theme: "System",
+  //   icon: <Monitor className="h-4 w-4" />,
+  // },
   {
     theme: "Light",
     icon: <SunDim className="h-4 w-4" />,
@@ -57,7 +57,7 @@ export default function Menu() {
           </>
         )}
         
-        <p className="p-2 text-xs font-medium text-muted-foreground">Appearance</p>
+        <p className="p-2 text-xs font-medium text-muted-foreground">モード</p>
         {appearances.map(({ theme, icon }) => (
           <Button
             variant="ghost"

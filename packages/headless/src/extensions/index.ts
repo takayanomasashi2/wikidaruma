@@ -24,12 +24,20 @@ import GlobalDragHandle from "tiptap-extension-global-drag-handle";
 
 const PlaceholderExtension = Placeholder.configure({
   placeholder: ({ node }) => {
+    // heading ノードにはプレースホルダーを適用
     if (node.type.name === "heading") {
       return `Heading ${node.attrs.level}`;
     }
+
+    // リスト系のノードにはプレースホルダーを表示しない
+    if (["taskList", "taskItem", "bulletList", "orderedList"].includes(node.type.name)) {
+      return ""; // 空文字列を返して非表示にする
+    }
+
+    // その他のノードにはデフォルトのプレースホルダーを適用
     return "Press '/' for commands";
   },
-  includeChildren: true,
+  includeChildren: true, // 子ノードも考慮
 });
 
 const HighlightExtension = Highlight.configure({

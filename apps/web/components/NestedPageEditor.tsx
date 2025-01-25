@@ -5,9 +5,12 @@ import { PageTree } from "./PageTree";
 import type { JSONContent, EditorInstance } from "novel";
 import type { TailwindAdvancedEditorProps } from "./tailwind/advanced-editor";
 import { PageLinkNode } from "@/lib/novel-extensions";
-import { Node } from '@tiptap/core';
+import { Node } from "@tiptap/core";
 
-const TailwindAdvancedEditor = dynamic<TailwindAdvancedEditorProps>(() => import("./tailwind/advanced-editor"), { ssr: false });
+const TailwindAdvancedEditor = dynamic<TailwindAdvancedEditorProps>(
+  () => import("./tailwind/advanced-editor"),
+  { ssr: false }
+);
 
 interface NestedPageEditorProps {
   pages: Page[];
@@ -24,29 +27,36 @@ export const NestedPageEditor: FC<NestedPageEditorProps> = ({
   onUpdatePageTitle,
   onDeletePage,
   currentPageId,
-  onSelectPage
+  onSelectPage,
 }) => {
-  const [editorKey, setEditorKey] = useState<string>('0');
+  const [editorKey, setEditorKey] = useState<string>("0");
   const [lastSavedContent, setLastSavedContent] = useState<string | null>(null);
+  const [tempTitle, setTempTitle] = useState<string>(""); // 一時的なタイトル
 
-  const currentPage = currentPageId 
-    ? pages.find(p => p.id === currentPageId) || 
-      pages.flatMap(p => p.children || []).find(p => p.id === currentPageId)
-    : undefined;
+  const currentPage =
+    currentPageId
+      ? pages.find((p) => p.id === currentPageId) ||
+        pages
+          .flatMap((p) => p.children || [])
+          .find((p) => p.id === currentPageId)
+      : undefined;
+
+  const [isComposing, setIsComposing] = useState(false); // IME入力中フラグ
 
   useEffect(() => {
-    setEditorKey(prev => String(Number(prev) + 1));
+    setEditorKey((prev) => String(Number(prev) + 1));
     setLastSavedContent(null);
+    setTempTitle(currentPage?.title || ""); // ページ切り替え時にタイトルをリセット
   }, [currentPageId]);
 
   const parseContent = (content: any): JSONContent => {
-    if (!content || content === 'null') return { type: 'doc', content: [] };
+    if (!content || content === "null") return { type: "doc", content: [] };
     try {
-      const parsed = typeof content === 'string' ? JSON.parse(content) : content;
+      const parsed = typeof content === "string" ? JSON.parse(content) : content;
       return parsed;
     } catch (error) {
-      console.error('Error parsing content:', error);
-      return { type: 'doc', content: [] };
+      console.error("Error parsing content:", error);
+      return { type: "doc", content: [] };
     }
   };
 
@@ -55,11 +65,21 @@ export const NestedPageEditor: FC<NestedPageEditorProps> = ({
 
     const newContent = editor.getJSON();
     const stringifiedContent = JSON.stringify(newContent);
-    
+
     if (stringifiedContent === lastSavedContent) return;
 
     setLastSavedContent(stringifiedContent);
     onUpdatePage(currentPage.id, stringifiedContent);
+  };
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTempTitle(e.target.value);
+  };
+
+  const handleTitleUpdate = () => {
+    if (tempTitle !== currentPage?.title) {
+      onUpdatePageTitle?.(currentPage!.id, tempTitle);
+    }
   };
 
   if (!currentPage) {
@@ -74,8 +94,8 @@ export const NestedPageEditor: FC<NestedPageEditorProps> = ({
         onSelectPage={onSelectPage}
         onDeletePage={onDeletePage}
         onUpdatePage={
-          onUpdatePageTitle 
-            ? (id, updates) => onUpdatePageTitle(id, updates.title || '') 
+          onUpdatePageTitle
+            ? (id, updates) => onUpdatePageTitle(id, updates.title || "")
             : undefined
         }
       />
@@ -83,12 +103,18 @@ export const NestedPageEditor: FC<NestedPageEditorProps> = ({
         <div>
           <input
             type="text"
-            value={currentPage.title || ''}
-            onChange={e => onUpdatePageTitle?.(currentPage.id, e.target.value)}
+            value={tempTitle}
+            onChange={handleTitleChange}
+            onBlur={handleTitleUpdate} // フォーカスが外れたときに更新
+            onCompositionStart={() => setIsComposing(true)} // IME入力開始
+            onCompositionEnd={() => {
+              setIsComposing(false); // IME入力終了
+              handleTitleUpdate(); // 更新を確定
+            }}
             className="w-full text-2xl font-bold border-b mb-4 py-2 focus:outline-none focus:border-blue-500"
             placeholder="ページタイトル"
           />
-          
+
           <div key={`editor-wrapper-${editorKey}`}>
             <TailwindAdvancedEditor
               key={`editor-${currentPage.id}-${editorKey}`}
