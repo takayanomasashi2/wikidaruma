@@ -27,23 +27,13 @@ export async function getEmbedding(text: string): Promise<number[]> {
       }
     );
 
-if (Array.isArray(response.data)) {
-  return response.data[0];
-} else {
-  throw new Error(`Unexpected format: ${JSON.stringify(response.data)}`);
-}
+    if (!Array.isArray(response.data) || !Array.isArray(response.data[0])) {
+      return response.data;
+    }
 
-    if (Array.isArray(response.data) && Array.isArray(response.data[0])) {
-      return response.data[0]; // Embeddingは1次元配列
-    } else {
-      throw new Error("Unexpected response format");
-    }
+    return response.data[0];
   } catch (error) {
-    if (error instanceof Error) {
-      console.error("Error fetching embedding:", error.message);
-    } else {
-      console.error("Unknown error:", error);
-    }
-    throw error; // 呼び出し元でエラーを再スロー
+    console.error("Error fetching embedding:", error);
+    throw error;
   }
 }

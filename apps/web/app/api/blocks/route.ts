@@ -1,3 +1,5 @@
+// api/blocks/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { createBlock, getBlocksByPageId } from "@/app/actions/blocks";
 import { getEmbedding } from '@/utils/embedding';
@@ -17,33 +19,33 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-    try {
-        const { content, type, order, checked, pageId, embedding } = await req.json();
-        
-        if (!pageId) {
-            return NextResponse.json(
-                { error: "pageId is required" },
-                { status: 400 }
-            );
-        }
+   try {
+       const { content, type, order, checked, pageId, embedding } = await req.json();
+       
+       if (!pageId) {
+           return NextResponse.json(
+               { error: "pageId is required" },
+               { status: 400 }
+           );
+       }
 
-        const blockEmbedding = embedding || await getEmbedding(content);
-        
-        const newBlock = await createBlock({
-            content,
-            type,
-            order,
-            checked,
-            pageId,
-            embedding: blockEmbedding
-        });
+       const blockEmbedding = embedding || await getEmbedding(content);
+       
+       const newBlock = await createBlock({
+           content,
+           type,
+           order,
+           checked,
+           pageId,
+           embedding: blockEmbedding
+       });
 
-        return NextResponse.json(newBlock, { status: 201 });
-    } catch (error) {
-        console.error("Error:", error);
-        return NextResponse.json(
-            { error: String(error) },
-            { status: 500 }
-        );
-    }
+       return NextResponse.json(newBlock, { status: 201 });
+   } catch (error) {
+       console.error("Embedding generation error:", error);
+       return NextResponse.json(
+           { error: String(error) },
+           { status: 500 }
+       );
+   }
 }

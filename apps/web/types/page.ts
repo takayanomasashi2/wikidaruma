@@ -1,6 +1,4 @@
 // types/page.ts
-import type { JSONContent } from "novel";
-
 export type Page = {
   id: string;
   title: string;
@@ -42,7 +40,7 @@ export interface Block {
     pageId: string;
     order: number;
     checked: boolean | null;
-    embedding?: number[] | string | null;
+    embedding: number[]; // 正しい型を定義
     createdAt?: Date;
     updatedAt?: Date;
 }
