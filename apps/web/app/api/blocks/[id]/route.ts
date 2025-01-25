@@ -1,3 +1,5 @@
+// api/blocks/[id]/route.ts
+
 import { NextResponse } from "next/server";
 import { updateBlock, deleteBlock } from "@/app/actions/blocks";
 

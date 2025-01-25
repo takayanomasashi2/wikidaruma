@@ -91,11 +91,9 @@ export function usePages() {
 };
 
 const updatePage = useCallback(async (id: string, updates: { title?: string; content?: string | null }) => {
- console.log("Processing content:", updates.content);
  
  if (updates.content) {
    const blocks = convertContent(updates.content);
-   console.log("Converted blocks:", blocks);
  }
 
     try {

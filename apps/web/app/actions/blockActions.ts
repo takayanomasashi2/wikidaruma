@@ -1,112 +1,93 @@
-// app/actions/blockActions.ts
 'use server';
 
-import { v4 as uuidv4 } from "uuid";
-import { Prisma } from "@prisma/client";
-import type { Block } from "@/types/page";
+import { type Block as PrismaBlock, Prisma } from "@prisma/client";
+import type { Block, BlockType } from "@/types/page";
 import { prisma } from "@/lib/prisma";
 import { getEmbedding } from "@/utils/embedding";
 import { isValidBlockType } from "@/utils/blockUtils";
+import { v4 as uuidv4 } from "uuid";
 
-// blockApi.ts から移動した関数
 const generateBlockId = (pageId: string): string => {
-    return `${pageId}-${uuidv4().split("-")[0]}`;
+  return `${pageId}-${uuidv4().split("-")[0]}`;
 };
 
-
-
 export async function createBlockAction(blockData: Partial<Block>): Promise<Block> {
+  if (!blockData.pageId) {
+    throw new Error("pageId is required");
+  }
 
-console.log("createBlockAction",blockData)
+  const blockId = blockData.id || generateBlockId(blockData.pageId);
 
-    if (!blockData.pageId) {
-        throw new Error("pageId is required to create a block");
+  try {
+    let embeddingVector: number[] = [];
+    if (blockData.content) {
+      try {
+        embeddingVector = await getEmbedding(blockData.content);
+      } catch (error) {
+        console.error("Embedding generation failed:", error);
+      }
     }
 
-    const blockId = blockData.id || generateBlockId(blockData.pageId);
+    const blockType = (blockData.type && isValidBlockType(blockData.type) ? blockData.type : "text") as BlockType;
 
-    try {
-        let embedding: Prisma.InputJsonValue | Prisma.NullableJsonNullValueInput | undefined;
-        if (blockData.content) {
-            try {
-                const embeddingVector = await getEmbedding(blockData.content);
-                embedding = embeddingVector && embeddingVector.length > 0 ? embeddingVector : Prisma.JsonNull;
-            } catch (error) {
-                console.error("Failed to generate embedding:", error);
-                embedding = Prisma.JsonNull;
-            }
-        }
+    const result = await prisma.$queryRaw`
+      INSERT INTO "Block" (
+        id, type, content, "pageId", "order", checked, embedding, "createdAt", "updatedAt"
+      ) VALUES (
+        ${blockId}, ${blockType}, ${blockData.content || ""}, 
+        ${blockData.pageId}, ${blockData.order || 1}, ${blockData.checked ?? null},
+        ${embeddingVector}, NOW(), NOW()
+      )
+      RETURNING id, type, content, "pageId", "order", checked, embedding::float[], "createdAt", "updatedAt"
+    `;
 
-        const blockType = blockData.type && isValidBlockType(blockData.type) ? blockData.type : "text";
-
-        const newBlock = await prisma.block.create({
-            data: {
-                id: blockId,
-                type: blockType,
-                content: blockData.content || "",
-                pageId: blockData.pageId,
-                order: blockData.order || 1,
-                checked: blockData.checked ?? null,
-                embedding: embedding ?? Prisma.JsonNull,
-                createdAt: new Date(),
-                updatedAt: new Date(),
-            },
-        });
-
-        return newBlock as Block;
-    } catch (error) {
-        console.error("Block creation failed:", error);
-        throw error;
-    }
+    const block = (result as any[])[0];
+    return {
+      ...block,
+      embedding: block.embedding || [],
+    } as Block;
+  } catch (error) {
+    throw error;
+  }
 }
 
 export async function updateBlockAction(id: string, blockData: Partial<Omit<Block, 'id'>>): Promise<Block> {
-
-console.log("updateBlockAction",blockData)
-
-    try {
-        const existingBlock = await prisma.block.findUnique({
-            where: { id },
-        });
-
-        let blockType: typeof blockData.type;
-        if (blockData.type && isValidBlockType(blockData.type)) {
-            blockType = blockData.type;
-        }
-
-        const updateData: Prisma.BlockUncheckedUpdateInput = {
-            ...(blockType && { type: blockType }),
-            ...(blockData.content !== undefined && { content: blockData.content }),
-            ...(blockData.order !== undefined && { order: blockData.order }),
-            ...(blockData.checked !== undefined && { checked: blockData.checked }),
-            updatedAt: new Date(),
-        };
-
-        if (blockData.content && (!existingBlock || blockData.content !== existingBlock.content)) {
-            try {
-                const embeddingVector = await getEmbedding(blockData.content);
-                updateData.embedding = embeddingVector && embeddingVector.length > 0 ? embeddingVector : Prisma.JsonNull;
-            } catch (error) {
-                console.error("Failed to generate embedding:", error);
-                updateData.embedding = Prisma.JsonNull;
-            }
-        }
-
-        if (!existingBlock) {
-            return createBlockAction({
-                ...blockData,
-                id,
-            });
-        }
-
-        const updatedBlock = await prisma.block.update({
-            where: { id },
-            data: updateData,
-        });
-
-        return updatedBlock as Block;
-    } catch (error) {
-        console.error("Block update failed:", error);
-        throw error;
+  try {
+    let embeddingVector: number[] = [];
+    if (blockData.content) {
+      try {
+        embeddingVector = await getEmbedding(blockData.content);
+      } catch (error) {
+        console.error("Embedding generation failed:", error);
+      }
     }
+
+    const blockType = blockData.type && isValidBlockType(blockData.type) ? blockData.type as BlockType : undefined;
+
+    const updates = [
+      blockType && `type = ${blockType}`,
+      blockData.content !== undefined && `content = ${blockData.content}`,
+      blockData.order !== undefined && `"order" = ${blockData.order}`,
+      blockData.checked !== undefined && `checked = ${blockData.checked}`,
+      embeddingVector.length > 0 && `embedding = ${embeddingVector}`,
+      `"updatedAt" = NOW()`
+    ].filter(Boolean).join(', ');
+
+    if (!updates) return (await prisma.$queryRaw`SELECT * FROM "Block" WHERE id = ${id}` as any[])[0] as Block;
+
+const result = await prisma.$queryRaw`
+  UPDATE "Block" 
+  SET ${Prisma.raw(updates)}
+  WHERE id = ${id}
+  RETURNING id, type, content, "pageId", "order", checked, embedding::float[], "createdAt", "updatedAt"
+`;
+
+    const block = (result as any[])[0];
+    return {
+      ...block,
+      embedding: block.embedding || [],
+    } as Block;
+  } catch (error) {
+    throw error;
+  }
 }
