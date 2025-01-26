@@ -87,8 +87,13 @@
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        userId: userId,
-        message: message,
+        prompt: message,
+        messages: [
+          {
+            role: "user",
+            content: message,
+          },
+        ],
       }),
     })
       .then((response) => {
