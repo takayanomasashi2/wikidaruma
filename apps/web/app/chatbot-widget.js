@@ -1,5 +1,4 @@
 (function () {
-  // スクリプトの中で、userIdを取得（クエリパラメータまたはdata属性から）
   const params = new URLSearchParams(window.location.search);
   const userId =
     params.get("userId") || document.currentScript.getAttribute("data-user-id");
@@ -9,13 +8,12 @@
     return;
   }
 
-  // チャットボットのHTMLを動的に作成
   const chatContainer = document.createElement("div");
   chatContainer.style.position = "fixed";
   chatContainer.style.bottom = "20px";
   chatContainer.style.right = "20px";
   chatContainer.style.width = "300px";
-  chatContainer.style.height = "400px";
+  chatContainer.style.height = "450px";
   chatContainer.style.border = "1px solid #ccc";
   chatContainer.style.borderRadius = "8px";
   chatContainer.style.backgroundColor = "#fff";
@@ -26,16 +24,26 @@
   chatHeader.style.padding = "10px";
   chatHeader.style.color = "white";
   chatHeader.style.textAlign = "center";
+  chatHeader.style.borderTopLeftRadius = "8px";
+  chatHeader.style.borderTopRightRadius = "8px";
   chatHeader.innerHTML = "チャットボット";
 
   const chatMessages = document.createElement("div");
   chatMessages.style.padding = "10px";
-  chatMessages.style.height = "calc(100% - 100px)";
+  chatMessages.style.height = "calc(100% - 130px)";
+  chatMessages.style.marginBottom = "60px";
   chatMessages.style.overflowY = "auto";
 
   const chatInputContainer = document.createElement("div");
+  chatInputContainer.style.position = "absolute";
+  chatInputContainer.style.bottom = "0";
+  chatInputContainer.style.left = "0";
+  chatInputContainer.style.right = "0";
   chatInputContainer.style.padding = "10px";
   chatInputContainer.style.borderTop = "1px solid #ccc";
+  chatInputContainer.style.backgroundColor = "#fff";
+  chatInputContainer.style.borderBottomLeftRadius = "8px";
+  chatInputContainer.style.borderBottomRightRadius = "8px";
 
   const chatInput = document.createElement("input");
   chatInput.type = "text";
@@ -44,65 +52,81 @@
   chatInput.style.padding = "10px";
   chatInput.style.border = "1px solid #ccc";
   chatInput.style.borderRadius = "4px";
+  chatInput.style.marginBottom = "10px";
 
   const chatButton = document.createElement("button");
   chatButton.innerHTML = "送信";
+  chatButton.style.width = "100%";
   chatButton.style.padding = "10px";
   chatButton.style.backgroundColor = "#4CAF50";
   chatButton.style.color = "white";
   chatButton.style.border = "none";
   chatButton.style.borderRadius = "4px";
-  chatButton.style.marginTop = "10px";
 
-  // メッセージ送信処理
-  chatButton.addEventListener("click", () => {
+  const appendMessage = (message, isUser = true) => {
+    const messageElement = document.createElement("div");
+    messageElement.style.padding = "5px";
+    messageElement.style.backgroundColor = isUser ? "#f1f1f1" : "#e1e1e1";
+    messageElement.style.marginBottom = "5px";
+    messageElement.style.borderRadius = "4px";
+    messageElement.textContent = message;
+    chatMessages.appendChild(messageElement);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  };
+
+  const handleSendMessage = () => {
     const message = chatInput.value;
-    if (message) {
-      const messageElement = document.createElement("div");
-      messageElement.style.padding = "5px";
-      messageElement.style.backgroundColor = "#f1f1f1";
-      messageElement.style.marginBottom = "5px";
-      messageElement.style.borderRadius = "4px";
-      messageElement.textContent = message;
+    if (!message) return;
 
-      chatMessages.appendChild(messageElement);
-      chatInput.value = ""; // 入力をクリア
+    appendMessage(message, true);
+    chatInput.value = "";
 
-      // サーバーにメッセージを送信
-      fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: userId, // ここでuserIdをAPIに送信
-          message: message,
-        }),
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          // 返ってきたレスポンスをチャットに表示
-          const botMessage = document.createElement("div");
-          botMessage.style.padding = "5px";
-          botMessage.style.backgroundColor = "#e1e1e1";
-          botMessage.style.marginBottom = "5px";
-          botMessage.style.borderRadius = "4px";
-          botMessage.textContent = data.reply;
-          chatMessages.appendChild(botMessage);
-        })
-        .catch((error) => {
-          console.error("Error sending message:", error);
+    fetch("https://wikidaruma.vercel.app/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userId: userId,
+        message: message,
+      }),
+    })
+      .then((response) => {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        return new ReadableStream({
+          start(controller) {
+            function push() {
+              reader.read().then(({ done, value }) => {
+                if (done) {
+                  controller.close();
+                  return;
+                }
+                const text = decoder.decode(value);
+                appendMessage(text, false);
+                push();
+              });
+            }
+            push();
+          },
         });
-    }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+        appendMessage("エラーが発生しました。もう一度お試しください。", false);
+      });
+  };
+
+  chatButton.addEventListener("click", handleSendMessage);
+  chatInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") handleSendMessage();
   });
 
-  // HTML要素を親要素に追加
   chatInputContainer.appendChild(chatInput);
   chatInputContainer.appendChild(chatButton);
-
   chatContainer.appendChild(chatHeader);
   chatContainer.appendChild(chatMessages);
   chatContainer.appendChild(chatInputContainer);
-
   document.body.appendChild(chatContainer);
 })();
