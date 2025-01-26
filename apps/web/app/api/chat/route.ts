@@ -1,8 +1,9 @@
-// app/api/chat/route.ts
+// api/chat/route.ts
 import { PrismaClient } from '@prisma/client';
 import { getEmbedding } from '@/utils/embedding';
 import { OpenAI } from 'openai';
 import { StreamingTextResponse, experimental_StreamData, OpenAIStream } from 'ai';
+import { NextResponse } from 'next/server';
 
 const prisma = new PrismaClient();
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -25,13 +26,79 @@ interface Message {
   userId: string;
 }
 
-interface ChatMessage {
-  role: 'system' | 'user' | 'assistant';
+type ChatMessage = {
+  role: Message['role'];
   content: string;
 }
 
-// 共通の処理を関数として抽出
+// POST handler
+export async function POST(req: Request) {
+  try {
+    const { messages, userId }: { messages: Message[]; userId: string } = await req.json();
+
+    const stream = await processChat(messages, userId);
+
+    return new StreamingTextResponse(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      }
+    });
+  } catch (error) {
+    console.error('Chat error:', error);
+    return new NextResponse(JSON.stringify({ error: 'Failed to process chat' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  }
+}
+
+
+// GETリクエスト処理
+export async function GET(req: Request) {
+  try {
+    const url = new URL(req.url);
+    const message = url.searchParams.get('message');
+    const userId = url.searchParams.get('userId');
+
+    if (!message || !userId) {
+      return new Response(JSON.stringify({ error: 'Missing message or userId' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    const messages: Message[] = [
+      {
+        role: 'user',
+        content: message,
+        userId: userId,
+      }
+    ];
+
+    const stream = await processChat(messages, userId);
+
+
+    return new StreamingTextResponse(stream, {
+      headers: { 'Content-Type': 'text/event-stream' }
+    });
+
+  } catch (error) {
+    console.error('Chat error (GET):', error);
+    return new Response(JSON.stringify({ error: 'Failed to process chat' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+// processChat内の修正（PrismaクエリとOpenAIレスポンスのログ）
 async function processChat(messages: Message[], userId: string) {
+
   if (!messages || messages.length === 0) {
     throw new Error('No messages provided');
   }
@@ -42,34 +109,34 @@ async function processChat(messages: Message[], userId: string) {
     const queryEmbedding = await getEmbedding(lastMessage.content);
 
     const similarContents = await tx.$queryRaw<SimilarContentResult[]>`
-     SELECT 
-       content,
-       "pageId",
-       "order",
-       1 - (embedding::vector <=> ${queryEmbedding}::vector) as similarity
-     FROM "Block"
-     WHERE 
-       (1 - (embedding::vector <=> ${queryEmbedding}::vector)) > 0.5
-       AND "pageId" IN (
-         SELECT id FROM "Page" WHERE "userId" = ${userId}
-       )
-     ORDER BY similarity DESC
-     LIMIT 5
-   `;
+      SELECT 
+        content,
+        "pageId",
+        "order",
+        1 - (embedding::vector <=> ${queryEmbedding}::vector) as similarity
+      FROM "Block"
+      WHERE 
+        (1 - (embedding::vector <=> ${queryEmbedding}::vector)) > 0.5
+        AND "pageId" IN (
+          SELECT id FROM "Page" WHERE "userId" = ${userId}
+        )
+      ORDER BY similarity DESC
+      LIMIT 5
+    `;
 
     let contentToUpdate = similarContents;
 
     if (similarContents.length === 0) {
+      // Similar content fallback logic
       const keywords = lastMessage.content.replace(/[はがのにをでやへと。、？！]/g, ' ').split(' ').filter(w => w.length > 0);
       if (keywords.length > 0) {
-
         const keywordResults = await tx.block.findMany({
           where: {
             OR: keywords.map(keyword => ({
               content: { contains: keyword }
             })),
             page: {
-              userId: userId  // Directly using userId in the page filter
+              userId: userId
             }
           },
           select: {
@@ -133,26 +200,17 @@ async function processChat(messages: Message[], userId: string) {
       return blockContext;
     }).join('\n\n');
 
-    for (const content of contentToUpdate) {
-      await tx.$executeRaw`
-       UPDATE "Block"
-       SET 
-         "useCount" = "useCount" + 1,
-         "avgSimilarity" = ("avgSimilarity" * "useCount" + ${content.similarity}) / ("useCount" + 1)
-       WHERE content = ${content.content}
-     `;
-    }
-
+    // Return both contentToUpdate and context
     return { contentToUpdate, context };
   });
 
-  const openAIFormattedMessages = [
+  const apiMessages: ChatMessage[] = [
     {
       role: 'system',
       content: `以下の関連情報を参照して回答してください：
 参照情報： ${result.context}
-ユーザーの質問「${messages[messages.length - 1].content}」に対して、上記の情報を参考に適切な回答を提供してください。存在する情報のみを使用し、情報が不足している場合はその旨を伝えてください。`
-    } as const,
+ユーザーの質問「${messages[messages.length - 1].content}」に対して、上記の情報を参考に適切な回答を提供してください。`
+    },
     ...messages.map(msg => ({
       role: msg.role,
       content: msg.content
@@ -161,69 +219,11 @@ async function processChat(messages: Message[], userId: string) {
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4',
-    messages: openAIFormattedMessages,
+    messages: apiMessages,
     stream: true
   });
 
-  const data = new experimental_StreamData();
-  const stream = OpenAIStream(response, {
-    onCompletion: (completion) => {
-      data.close();
-    },
-    experimental_streamData: true,
-  });
-
+  const stream = OpenAIStream(response);
   return stream;
 }
 
-// POST ハンドラー
-export async function POST(req: Request) {
-  try {
-    const { messages, userId }: { messages: Message[]; userId: string } = await req.json();
-
-    const stream = await processChat(messages, userId);
-
-    return new StreamingTextResponse(stream, {
-      headers: { 'Content-Type': 'text/event-stream' }
-    });
-
-  } catch (error) {
-    console.error('Chat error:', error);
-    return new Response(JSON.stringify({ error: 'Failed to process chat' }), { status: 500 });
-  } finally {
-    await prisma.$disconnect();
-  }
-}
-
-// GET ハンドラーを追加
-export async function GET(req: Request) {
-  try {
-    const url = new URL(req.url);
-    const message = url.searchParams.get('message');
-    const userId = url.searchParams.get('userId');
-
-    if (!message || !userId) {
-      return new Response(JSON.stringify({ error: 'Missing message or userId' }), { status: 400 });
-    }
-
-    const messages: Message[] = [
-      {
-        role: 'user',
-        content: message,
-        userId: userId,
-      }
-    ];
-
-    const stream = await processChat(messages, userId);
-
-    return new StreamingTextResponse(stream, {
-      headers: { 'Content-Type': 'text/event-stream' }
-    });
-
-  } catch (error) {
-    console.error('Chat error (GET):', error);
-    return new Response(JSON.stringify({ error: 'Failed to process chat' }), { status: 500 });
-  } finally {
-    await prisma.$disconnect();
-  }
-}
