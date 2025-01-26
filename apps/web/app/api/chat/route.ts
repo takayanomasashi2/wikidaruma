@@ -53,13 +53,18 @@ export async function POST(req: Request) {
       if (similarContents.length === 0) {
         const keywords = lastMessage.content.replace(/[はがのにをでやへと。、？！]/g, ' ').split(' ').filter(w => w.length > 0);
         if (keywords.length > 0) {
+
+          // キーワード検索のクエリを修正
           const keywordResults = await tx.block.findMany({
             where: {
               OR: keywords.map(keyword => ({
                 content: { contains: keyword }
               })),
               page: {
-                userId: userId
+                // userIdはページに対して設定
+                user: {
+                  id: userId
+                }
               }
             },
             select: {
@@ -69,6 +74,7 @@ export async function POST(req: Request) {
             },
             take: 5
           });
+
           contentToUpdate = keywordResults.map(item => ({
             content: item.content,
             similarity: 0.3,
