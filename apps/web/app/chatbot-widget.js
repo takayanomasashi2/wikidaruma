@@ -79,6 +79,7 @@
     chatMessages.scrollTop = chatMessages.scrollHeight;
   };
 
+  // chatbot-widget.js（主要部分）
   const handleSendMessage = () => {
     const message = chatInput.value.trim();
     if (!message) return;
@@ -86,33 +87,20 @@
     appendMessage(message, true);
     chatInput.value = "";
 
-    fetch("/api/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "text/event-stream",
-      },
-      body: JSON.stringify({
-        message: message,
-        userId: userId,
-      }),
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error(response.statusText);
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+    const es = new EventSource(
+      `/api/chat?message=${encodeURIComponent(
+        message,
+      )}&userId=${encodeURIComponent(userId)}`,
+    );
 
-        return reader.read().then(function processText({ done, value }) {
-          if (done) return;
-          const text = decoder.decode(value);
-          appendMessage(text, false);
-          return reader.read().then(processText);
-        });
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        appendMessage("エラーが発生しました。", false);
-      });
+    es.onmessage = (event) => {
+      appendMessage(event.data, false);
+    };
+
+    es.onerror = () => {
+      es.close();
+      appendMessage("エラーが発生しました。", false);
+    };
   };
 
   chatButton.addEventListener("click", handleSendMessage);
