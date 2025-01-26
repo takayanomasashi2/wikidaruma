@@ -89,7 +89,7 @@
 
   let isProcessing = false;
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = () => {
     const message = chatInput.value.trim();
     if (!message || isProcessing) return;
 
@@ -100,34 +100,47 @@
     appendMessage(message, true);
     chatInput.value = "";
 
-    // handleSendMessage関数内のtry-catchブロックを修正
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: userId,
-          messages: [
-            {
-              role: "user",
-              content: message,
-            },
-          ],
-        }),
+    fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        userId: userId,
+        message: message,
+      }),
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error(response.statusText);
+        const reader = response.body.getReader();
+        return new ReadableStream({
+          start(controller) {
+            return pump();
+            function pump() {
+              return reader.read().then(({ done, value }) => {
+                if (done) {
+                  controller.close();
+                  return;
+                }
+                controller.enqueue(value);
+                return pump();
+              });
+            }
+          },
+        });
+      })
+      .then((stream) => new Response(stream))
+      .then((response) => response.text())
+      .then((text) => appendMessage(text, false))
+      .catch((error) => {
+        console.error("Error:", error);
+        appendMessage("エラーが発生しました。", false);
+      })
+      .finally(() => {
+        isProcessing = false;
+        chatButton.disabled = false;
+        chatButton.style.backgroundColor = "#4CAF50";
       });
-
-      const data = await response.text();
-      appendMessage(data, false);
-    } catch (error) {
-      console.error("Error:", error);
-      appendMessage("エラーが発生しました。", false);
-    } finally {
-      isProcessing = false;
-      chatButton.disabled = false;
-      chatButton.style.backgroundColor = "#4CAF50";
-    }
   };
 
   chatButton.addEventListener("click", handleSendMessage);
