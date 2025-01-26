@@ -20,6 +20,7 @@
   chatContainer.style.zIndex = "9999";
   chatContainer.style.display = "flex";
   chatContainer.style.flexDirection = "column";
+  chatContainer.style.boxShadow = "0 2px 10px rgba(0,0,0,0.1)";
 
   const chatHeader = document.createElement("div");
   chatHeader.style.backgroundColor = "#4CAF50";
@@ -61,6 +62,15 @@
   chatButton.style.border = "none";
   chatButton.style.borderRadius = "4px";
   chatButton.style.cursor = "pointer";
+  chatButton.style.transition = "background-color 0.3s";
+
+  chatButton.addEventListener("mouseover", () => {
+    chatButton.style.backgroundColor = "#45a049";
+  });
+
+  chatButton.addEventListener("mouseout", () => {
+    chatButton.style.backgroundColor = "#4CAF50";
+  });
 
   const appendMessage = (message, isUser = true) => {
     const messageElement = document.createElement("div");
@@ -77,21 +87,27 @@
     chatMessages.scrollTop = chatMessages.scrollHeight;
   };
 
+  let isProcessing = false;
+
   const handleSendMessage = async () => {
-    const message = chatInput.value;
-    if (!message) return;
+    const message = chatInput.value.trim();
+    if (!message || isProcessing) return;
+
+    isProcessing = true;
+    chatButton.disabled = true;
+    chatButton.style.backgroundColor = "#cccccc";
 
     appendMessage(message, true);
     chatInput.value = "";
 
     try {
-      const response = await fetch("https://wikidaruma.vercel.app/api/chat", {
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Accept: "text/event-stream",
         },
         body: JSON.stringify({
+          userId: userId,
           messages: [
             {
               role: "user",
@@ -99,7 +115,6 @@
               userId: userId,
             },
           ],
-          userId: userId,
         }),
       });
 
@@ -107,38 +122,50 @@
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let buffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split("\n");
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
 
-        lines.forEach((line) => {
+        for (const line of lines) {
           if (line.startsWith("data: ")) {
             const data = line.slice(6);
-            if (data === "[DONE]") return;
-
+            if (data === "[DONE]") continue;
             try {
-              appendMessage(data, false);
+              const parsed = JSON.parse(data);
+              const content = parsed.choices[0]?.delta?.content;
+              if (content) appendMessage(content, false);
             } catch (e) {
-              if (data && data.trim()) {
-                appendMessage(data, false);
-              }
+              if (data.trim()) appendMessage(data.trim(), false);
             }
           }
-        });
+        }
+      }
+
+      if (buffer) {
+        appendMessage(buffer.trim(), false);
       }
     } catch (error) {
       console.error("Error:", error);
       appendMessage("エラーが発生しました。もう一度お試しください。", false);
+    } finally {
+      isProcessing = false;
+      chatButton.disabled = false;
+      chatButton.style.backgroundColor = "#4CAF50";
     }
   };
 
   chatButton.addEventListener("click", handleSendMessage);
   chatInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") handleSendMessage();
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
   });
 
   chatInputContainer.appendChild(chatInput);
