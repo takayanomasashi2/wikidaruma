@@ -1,4 +1,3 @@
-// /api/chat/route.ts
 import { PrismaClient } from '@prisma/client';
 import { getEmbedding } from '@/utils/embedding';
 import { OpenAI } from 'openai';
@@ -19,9 +18,21 @@ interface ContentWithContext extends SimilarContentResult {
   followingBlocks?: string[];
 }
 
+// Update Message interface to match OpenAI's expected structure
+interface Message {
+  content: string;
+  userId: string;
+  role: 'system' | 'user' | 'assistant';  // OpenAI requires a role
+}
+
+interface ChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
 export async function POST(req: Request) {
   try {
-    const { messages, userId } = await req.json();
+    const { messages, userId }: { messages: Message[]; userId: string } = await req.json();
 
     if (!messages || messages.length === 0) {
       return new Response('No messages provided', { status: 400 });
@@ -54,17 +65,13 @@ export async function POST(req: Request) {
         const keywords = lastMessage.content.replace(/[はがのにをでやへと。、？！]/g, ' ').split(' ').filter(w => w.length > 0);
         if (keywords.length > 0) {
 
-          // キーワード検索のクエリを修正
           const keywordResults = await tx.block.findMany({
             where: {
               OR: keywords.map(keyword => ({
                 content: { contains: keyword }
               })),
               page: {
-                // userIdはページに対して設定
-                user: {
-                  id: userId
-                }
+                userId: userId // userIdを直接指定
               }
             },
             select: {
@@ -141,19 +148,28 @@ export async function POST(req: Request) {
       return { contentToUpdate, context };
     });
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: `以下の関連情報を参照して回答してください：
+    // Prepare messages for OpenAI API
+    // Prepare messages for OpenAI API with name included
+
+    const openAIFormattedMessages: ChatMessage[] = [
+      {
+        role: 'system',
+        content: `以下の関連情報を参照して回答してください：
 参照情報： ${result.context}
 ユーザーの質問「${lastMessage.content}」に対して、上記の情報を参考に適切な回答を提供してください。存在する情報のみを使用し、情報が不足している場合はその旨を伝えてください。`
-        },
-        ...messages
-      ],
+      },
+      ...messages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }))
+    ];
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4',
+      messages: openAIFormattedMessages,
       stream: true
     });
+
 
     const data = new experimental_StreamData();
     const stream = OpenAIStream(response, {
