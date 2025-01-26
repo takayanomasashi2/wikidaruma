@@ -63,7 +63,7 @@ export default function DashboardPage() {
     setIsLoading(true);
 
     try {
-      const baseTitle = "New Page";
+      const baseTitle = "新規ページ";
       const existingTitles = pages.map((p) => p.title);
 
       let newTitle = baseTitle;
@@ -101,7 +101,7 @@ export default function DashboardPage() {
     setIsLoading(true);
 
     try {
-      const baseTitle = "New Subpage";
+      const baseTitle = "新規サブページ";
       const existingSubpageTitles = pages
         .filter((p) => p.parentId === parentId)
         .map((p) => p.title);
