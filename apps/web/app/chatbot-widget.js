@@ -122,33 +122,13 @@
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let buffer = "";
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const data = line.slice(6);
-            if (data === "[DONE]") continue;
-            try {
-              const parsed = JSON.parse(data);
-              const content = parsed.choices[0]?.delta?.content;
-              if (content) appendMessage(content, false);
-            } catch (e) {
-              if (data.trim()) appendMessage(data.trim(), false);
-            }
-          }
-        }
-      }
-
-      if (buffer) {
-        appendMessage(buffer.trim(), false);
+        const text = decoder.decode(value);
+        appendMessage(text, false);
       }
     } catch (error) {
       console.error("Error:", error);
