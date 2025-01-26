@@ -75,7 +75,7 @@ importers:
       next-auth: ^4.24.11
       next-themes: ^0.2.1
       novel: workspace:^
-      openai: ^4.28.4
+      openai: ^4.80.1
       postcss: ^8.4.0
       prisma: ^6.2.1
       prosemirror-model: ^1.24.1
@@ -116,7 +116,7 @@ importers:
       '@vercel/analytics': 1.4.1_next@14.2.23+react@18.2.0
       '@vercel/blob': 0.22.3
       '@vercel/kv': 1.0.1
-      ai: 3.4.33_tqsvd56ra2dmk4ez7hnutyjgci
+      ai: 3.4.33_cp74xh6o2npey4m66tifoflexi
       autoprefixer: 10.4.20_postcss@8.5.1
       axios: 1.7.9
       cmdk: 1.0.4_zjqkrrz3ix2eevkndqdmukfiay
@@ -126,7 +126,7 @@ importers:
       next-auth: 4.24.11_amdyelngqjozz3clj4rbg73avi
       next-themes: 0.2.1_acujobdliff5q36leoj3kbpjvq
       novel: link:../../packages/headless
-      openai: 4.79.1_zod@3.24.1
+      openai: 4.80.1_zod@3.24.1
       postcss: 8.5.1
       prisma: 6.2.1
       prosemirror-model: 1.24.1
@@ -2941,7 +2941,7 @@ packages:
   /@types/node-fetch/2.6.12:
     resolution: {integrity: sha512-8nneRWKCg3rMtF69nLQJnOYUcbafYeFSjqkw3jCRLsqkWFlHaoQrr5mXmofFGOx3DKn7UfmBMyov8ySvLRVldA==}
     dependencies:
-      '@types/node': 20.11.24
+      '@types/node': 22.10.7
       form-data: 4.0.1
     dev: false
 
@@ -3102,7 +3102,7 @@ packages:
       humanize-ms: 1.2.1
     dev: false
 
-  /ai/3.4.33_tqsvd56ra2dmk4ez7hnutyjgci:
+  /ai/3.4.33_cp74xh6o2npey4m66tifoflexi:
     resolution: {integrity: sha512-plBlrVZKwPoRTmM8+D1sJac9Bq8eaa2jiZlHLZIWekKWI1yMWYZvCCEezY9ASPwRhULYDJB2VhKOBUUeg3S5JQ==}
     engines: {node: '>=18'}
     peerDependencies:
@@ -3134,7 +3134,7 @@ packages:
       eventsource-parser: 1.1.2
       json-schema: 0.4.0
       jsondiffpatch: 0.6.0
-      openai: 4.79.1_zod@3.24.1
+      openai: 4.80.1_zod@3.24.1
       react: 18.2.0
       secure-json-parse: 2.7.0
       zod: 3.24.1
@@ -5157,8 +5157,8 @@ packages:
       mimic-fn: 4.0.0
     dev: true
 
-  /openai/4.79.1_zod@3.24.1:
-    resolution: {integrity: sha512-M7P5/PKnT/S/B5v0D64giC9mjyxFYkqlCuQFzR5hkdzMdqUuHf8T1gHhPGPF5oAvu4+PO3TvJv/qhZoS2bqAkw==}
+  /openai/4.80.1_zod@3.24.1:
+    resolution: {integrity: sha512-+6+bbXFwbIE88foZsBEt36bPkgZPdyFN82clAXG61gnHb2gXdZApDyRrcAHqEtpYICywpqaNo57kOm9dtnb7Cw==}
     hasBin: true
     peerDependencies:
       ws: ^8.18.0

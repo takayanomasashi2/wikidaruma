@@ -1,4 +1,3 @@
-// chatbot-widget.js
 (function () {
   const params = new URLSearchParams(window.location.search);
   const userId =
@@ -79,33 +78,69 @@
     chatMessages.scrollTop = chatMessages.scrollHeight;
   };
 
-  // chatbot-widget.js（主要部分）
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     const message = chatInput.value.trim();
     if (!message) return;
 
     appendMessage(message, true);
     chatInput.value = "";
+    chatButton.disabled = true;
+    chatInput.disabled = true;
 
-    const es = new EventSource(
-      `/api/chat?message=${encodeURIComponent(
-        message,
-      )}&userId=${encodeURIComponent(userId)}`,
-    );
+    try {
+      const response = await fetch("https://wikidaruma.vercel.app/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "user",
+              content: message,
+              userId: userId,
+            },
+          ],
+          userId: userId,
+        }),
+      });
 
-    es.onmessage = (event) => {
-      appendMessage(event.data, false);
-    };
+      if (!response.ok) throw new Error("Network response was not ok");
 
-    es.onerror = () => {
-      es.close();
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedMessage = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split("\n");
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(5).trim();
+            if (data !== "[DONE]") {
+              accumulatedMessage += data;
+              appendMessage(accumulatedMessage, false);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Chat error:", error);
       appendMessage("エラーが発生しました。", false);
-    };
+    } finally {
+      chatButton.disabled = false;
+      chatInput.disabled = false;
+      chatInput.focus();
+    }
   };
 
   chatButton.addEventListener("click", handleSendMessage);
   chatInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
