@@ -1,3 +1,4 @@
+// app/api/chat/route.ts
 import { PrismaClient } from '@prisma/client';
 import { getEmbedding } from '@/utils/embedding';
 import { OpenAI } from 'openai';
