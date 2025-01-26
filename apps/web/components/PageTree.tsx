@@ -9,9 +9,11 @@ import {
   Edit,
   Check,
   X,
+  Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Page } from "@/types/page";
+import { Button } from "./tailwind/ui/button";
 
 interface PageTreeProps {
   pages: Page[];
@@ -19,6 +21,7 @@ interface PageTreeProps {
   onSelectPage: (pageId: string) => void;
   onDeletePage: (pageId: string) => void;
   onUpdatePage: (id: string, updates: { title?: string }) => void;
+  onCreateSubPage: (parentId: string) => void;
 }
 
 const PageTreeItem = ({
@@ -28,6 +31,7 @@ const PageTreeItem = ({
   onSelectPage,
   onDeletePage,
   onUpdatePage,
+  onCreateSubPage,
 }: {
   page: Page;
   level?: number;
@@ -35,6 +39,7 @@ const PageTreeItem = ({
   onSelectPage: (pageId: string) => void;
   onDeletePage: (pageId: string) => void;
   onUpdatePage: (id: string, updates: { title?: string }) => void;
+  onCreateSubPage: (parentId: string) => void;
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -65,6 +70,11 @@ const PageTreeItem = ({
     setIsEditing(false);
   };
 
+  const handleCreateSubPage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onCreateSubPage(page.id);
+  };
+
   const isRootPage = page.parentId === null;
 
   return (
@@ -73,7 +83,7 @@ const PageTreeItem = ({
         className={cn(
           "group flex items-center justify-between gap-2 p-2 hover:bg-accent rounded cursor-pointer",
           selectedPageId === page.id && "bg-accent",
-          isRootPage && "font-bold"
+          isRootPage && "font-bold",
         )}
         style={{ paddingLeft: `${level * 12 + 8}px` }}
         onClick={() => onSelectPage(page.id)}
@@ -107,7 +117,6 @@ const PageTreeItem = ({
                 className="flex-grow border rounded px-2 py-1"
                 autoFocus
               />
-              {/* ボタンを絶対位置で固定 */}
               <div className="absolute right-0 flex gap-2">
                 <button
                   onClick={handleEditSave}
@@ -130,19 +139,27 @@ const PageTreeItem = ({
 
         <div className="flex items-center gap-1">
           {!isEditing && (
-            <button
-              onClick={handleEditStart}
-              className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-black transition-opacity duration-200"
-            >
-              <Edit className="w-4 h-4" />
-            </button>
+            <>
+              <button
+                onClick={handleCreateSubPage}
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-black transition-opacity duration-200"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleEditStart}
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-black transition-opacity duration-200"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleDelete}
+                className="opacity-0 group-hover:opacity-100 text-destructive hover:text-red-600 transition-opacity duration-200"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </>
           )}
-          <button
-            onClick={handleDelete}
-            className="opacity-0 group-hover:opacity-100 text-destructive hover:text-red-600 transition-opacity duration-200"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
         </div>
       </div>
       {hasChildren && isExpanded && (
@@ -156,6 +173,7 @@ const PageTreeItem = ({
               onSelectPage={onSelectPage}
               onDeletePage={onDeletePage}
               onUpdatePage={onUpdatePage}
+              onCreateSubPage={onCreateSubPage}
             />
           ))}
         </div>
@@ -170,6 +188,7 @@ export const PageTree = ({
   onSelectPage,
   onDeletePage,
   onUpdatePage,
+  onCreateSubPage,
 }: PageTreeProps) => {
   const rootPages = pages.filter((page) => page.parentId === null);
 
@@ -183,6 +202,7 @@ export const PageTree = ({
           onSelectPage={onSelectPage}
           onDeletePage={onDeletePage}
           onUpdatePage={onUpdatePage}
+          onCreateSubPage={onCreateSubPage}
         />
       ))}
     </div>

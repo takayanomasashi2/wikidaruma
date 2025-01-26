@@ -31,20 +31,22 @@ export default function Menu() {
     <Popover>
       <PopoverTrigger asChild>
         {session?.user?.image ? (
-          <button className="rounded-full">
-            <Image
-              src={session.user.image}
-              alt={session.user.name || "User avatar"}
-              width={32}
-              height={32}
-              className="rounded-full"
-            />
-          </button>
-        ) : (
-          <Button variant="ghost" size="icon">
-            <MenuIcon className="h-4 w-4" />
-          </Button>
-        )}
+ <div className="flex">
+   <button className="rounded-full">
+     <Image
+       src={session.user.image}
+       alt={session.user.name || "User avatar"}
+       width={40}
+       height={40}
+       className="rounded-full ring-2 ring-primary"
+     />
+   </button>
+ </div>
+) : (
+ <Button variant="ghost" size="icon">
+   <MenuIcon className="h-4 w-4" />
+ </Button>
+)}
       </PopoverTrigger>
       <PopoverContent className="w-52 p-2" align="end">
         {session?.user && (

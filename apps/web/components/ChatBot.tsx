@@ -1,75 +1,90 @@
 import { useState } from "react";
 import { useChat } from "ai/react";
-import opengraphImage from "@/app/opengraph-image.png"; // 画像のインポート
+import { X } from "lucide-react";
+import opengraphImage from "@/app/opengraph-image.png";
 
-export function ChatBotWithImage() {
+interface ChatBotWithImageProps {
+  userId: string;
+}
+
+export function ChatBotWithImage({ userId }: ChatBotWithImageProps) {
   const { messages, input, handleInputChange, handleSubmit } = useChat({
     api: "/api/chat",
-    initialMessages: [],
+    body: {
+      userId,
+    },
     onResponse: (response) => {
-      console.log('Response received:', response);
+      console.log("Response received:", response);
     },
     onError: (error) => {
-      console.error('Chat error:', error);
-    }
+      console.error("Chat error:", error);
+    },
   });
 
-  const [isChatOpen, setIsChatOpen] = useState(false); // チャットウィンドウが開いているかの状態
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
-  // チャットウィンドウを開閉する
   const toggleChatWindow = () => {
-    setIsChatOpen((prevState) => !prevState);
+    setIsChatOpen((prev) => !prev);
   };
 
   return (
     <div className="relative">
-      {/* 画像を右下に配置してクリックでチャットウィンドウを開く */}
       <img
-        src={opengraphImage.src}  // .src を使用
+        src={opengraphImage.src}
         alt="ChatBot"
-        className="w-32 h-auto cursor-pointer absolute bottom-4 right-4 z-10" // 画像を右下に配置
+        className="w-32 h-auto cursor-pointer absolute bottom-4 right-4 z-10"
         onClick={toggleChatWindow}
       />
 
-      {/* チャットウィンドウ */}
       {isChatOpen && (
-        <div className="w-full max-w-md mx-auto p-4 bg-white shadow-lg rounded-lg absolute bottom-36 right-4 z-20">
-          <div className="flex flex-col gap-4 h-[500px] overflow-y-auto">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${
-                  message.role === "assistant" ? "justify-start" : "justify-end"
-                }`}
-              >
+        <div className="fixed inset-0 z-20 flex justify-end items-end p-4">
+          <div className="relative w-full max-w-md bg-green-50 shadow-lg rounded-lg mb-28 mr-4">
+            <button
+              onClick={toggleChatWindow}
+              className="absolute top-2 left-2 p-1 rounded-full hover:bg-gray-100 z-30"
+              aria-label="Close chat"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="flex flex-col gap-4 h-[500px] overflow-y-auto mt-6 p-4">
+              {messages.map((message) => (
                 <div
-                  className={`rounded-lg px-4 py-2 max-w-[80%] ${
+                  key={message.id}
+                  className={`flex ${
                     message.role === "assistant"
-                      ? "bg-accent text-accent-foreground"
-                      : "bg-primary text-primary-foreground"
+                      ? "justify-start"
+                      : "justify-end"
                   }`}
                 >
-                  {message.content}
+                  <div
+                    className={`rounded-lg px-4 py-2 max-w-[80%] ${
+                      message.role === "assistant"
+                        ? "bg-accent text-accent-foreground"
+                        : "bg-primary text-primary-foreground"
+                    }`}
+                  >
+                    {message.content}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          {/* 入力フォーム */}
-          <form onSubmit={handleSubmit} className="flex gap-2 mt-4">
-            <input
-              value={input}
-              onChange={handleInputChange}
-              placeholder="質問を入力してください..."
-              className="flex-1 rounded-md border border-input bg-background px-3 py-2"
-            />
-            <button
-              type="submit"
-              className="rounded-md bg-primary px-4 py-2 text-primary-foreground"
-            >
-              送信
-            </button>
-          </form>
+            <form onSubmit={handleSubmit} className="flex gap-2 mt-4 p-4">
+              <input
+                value={input}
+                onChange={handleInputChange}
+                placeholder="質問を入力してください..."
+                className="flex-1 rounded-md border border-input bg-background px-3 py-2"
+              />
+              <button
+                type="submit"
+                className="rounded-md bg-primary px-4 py-2 text-primary-foreground"
+              >
+                送信
+              </button>
+            </form>
+          </div>
         </div>
       )}
     </div>

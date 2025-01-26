@@ -9,6 +9,51 @@ datasource db {
   extensions = [vector]
 }
 
+model User {
+  id    String  @id @default(cuid())
+  email String  @unique
+  name  String?
+  image String?
+  pages Page[]
+}
+
+model Page {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  parentId  String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  // リレーション：userId が外部キー
+  user      User     @relation(fields: [userId], references: [id])
+  // ページ同士の親子関係
+  parent    Page?    @relation("PageToPage", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Page[]   @relation("PageToPage")
+  // Blockとの1対多関係
+  blocks    Block[]
+
+  // 複合ユニーク制約: (id, userId) の組み合わせでユニーク  
+  @@unique([id, userId])
+  @@index([userId], name: "Page_userId_idx")
+}
+
+model Block {
+  id            String                @id @default(cuid())
+  type          BlockType
+  content       String
+  pageId        String
+  order         Int
+  checked       Boolean?              @default(false)
+  embedding     Unsupported("vector")
+  useCount      Int                   @default(0)
+  avgSimilarity Float                 @default(0)
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  page          Page                  @relation(fields: [pageId], references: [id])
+}
+
 enum BlockType {
   text
   todo
@@ -30,32 +75,4 @@ enum BlockType {
   mark_code
   mark_link
   bulletList
-}
-
-model Page {
-  id        String   @id @default(cuid())
-  title     String
-  content   String? // JSONContentをStringとして保存
-  parentId  String?
-  order     Int      @default(0)
-  parent    Page?    @relation("PageToPage", fields: [parentId], references: [id], onDelete: Cascade)
-  children  Page[]   @relation("PageToPage")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  blocks    Block[]
-}
-
-model Block {
-  id            String                     @id @default(cuid())
-  type          BlockType
-  content       String
-  pageId        String
-  page          Page                       @relation(fields: [pageId], references: [id])
-  order         Int
-  checked       Boolean?                   @default(false)
-  embedding     Unsupported("vector(384)")
-  useCount      Int                        @default(0) // For tracking usage
-  avgSimilarity Float                      @default(0) // For tracking similarity
-  createdAt     DateTime                   @default(now())
-  updatedAt     DateTime                   @updatedAt
 }
