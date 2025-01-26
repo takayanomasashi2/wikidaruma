@@ -18,6 +18,8 @@
   chatContainer.style.borderRadius = "8px";
   chatContainer.style.backgroundColor = "#fff";
   chatContainer.style.zIndex = "9999";
+  chatContainer.style.display = "flex";
+  chatContainer.style.flexDirection = "column";
 
   const chatHeader = document.createElement("div");
   chatHeader.style.backgroundColor = "#4CAF50";
@@ -30,15 +32,10 @@
 
   const chatMessages = document.createElement("div");
   chatMessages.style.padding = "10px";
-  chatMessages.style.height = "calc(100% - 130px)";
-  chatMessages.style.marginBottom = "60px";
+  chatMessages.style.flex = "1";
   chatMessages.style.overflowY = "auto";
 
   const chatInputContainer = document.createElement("div");
-  chatInputContainer.style.position = "absolute";
-  chatInputContainer.style.bottom = "0";
-  chatInputContainer.style.left = "0";
-  chatInputContainer.style.right = "0";
   chatInputContainer.style.padding = "10px";
   chatInputContainer.style.borderTop = "1px solid #ccc";
   chatInputContainer.style.backgroundColor = "#fff";
@@ -53,6 +50,7 @@
   chatInput.style.border = "1px solid #ccc";
   chatInput.style.borderRadius = "4px";
   chatInput.style.marginBottom = "10px";
+  chatInput.style.boxSizing = "border-box";
 
   const chatButton = document.createElement("button");
   chatButton.innerHTML = "送信";
@@ -62,57 +60,80 @@
   chatButton.style.color = "white";
   chatButton.style.border = "none";
   chatButton.style.borderRadius = "4px";
+  chatButton.style.cursor = "pointer";
 
   const appendMessage = (message, isUser = true) => {
     const messageElement = document.createElement("div");
-    messageElement.style.padding = "5px";
+    messageElement.style.padding = "8px";
     messageElement.style.backgroundColor = isUser ? "#f1f1f1" : "#e1e1e1";
-    messageElement.style.marginBottom = "5px";
+    messageElement.style.marginBottom = "8px";
     messageElement.style.borderRadius = "4px";
+    messageElement.style.maxWidth = "80%";
+    messageElement.style.marginLeft = isUser ? "auto" : "0";
+    messageElement.style.marginRight = isUser ? "0" : "auto";
+    messageElement.style.wordBreak = "break-word";
     messageElement.textContent = message;
     chatMessages.appendChild(messageElement);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     const message = chatInput.value;
     if (!message) return;
 
     appendMessage(message, true);
     chatInput.value = "";
 
-    fetch("https://wikidaruma.vercel.app/api/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        prompt: message,
-        messages: [
-          {
-            role: "user",
-            content: message,
-          },
-        ],
-      }),
-    })
-      .then((response) => {
-        if (!response.ok) throw new Error(response.statusText);
-        return new Response(response.body).text();
-      })
-      .then((text) => {
-        const botMessage = document.createElement("div");
-        botMessage.style.padding = "5px";
-        botMessage.style.backgroundColor = "#e1e1e1";
-        botMessage.style.marginBottom = "5px";
-        botMessage.style.borderRadius = "4px";
-        botMessage.textContent = text;
-        chatMessages.appendChild(botMessage);
-      })
-      .catch((error) => {
-        console.error("Error:", error);
-        appendMessage("エラーが発生しました。もう一度お試しください。", false);
+    try {
+      const response = await fetch("https://wikidaruma.vercel.app/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/event-stream",
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "user",
+              content: message,
+              userId: userId,
+            },
+          ],
+          userId: userId,
+        }),
       });
+
+      if (!response.ok) throw new Error("Network response was not ok");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split("\n");
+
+        lines.forEach((line) => {
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6);
+            if (data === "[DONE]") return;
+
+            try {
+              appendMessage(data, false);
+            } catch (e) {
+              if (data && data.trim()) {
+                appendMessage(data, false);
+              }
+            }
+          }
+        });
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      appendMessage("エラーが発生しました。もう一度お試しください。", false);
+    }
   };
 
   chatButton.addEventListener("click", handleSendMessage);
