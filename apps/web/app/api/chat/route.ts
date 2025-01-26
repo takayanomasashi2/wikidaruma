@@ -20,9 +20,9 @@ interface ContentWithContext extends SimilarContentResult {
 
 // Update Message interface to match OpenAI's expected structure
 interface Message {
+  role: 'system' | 'user' | 'assistant';
   content: string;
   userId: string;
-  role: 'system' | 'user' | 'assistant';  // OpenAI requires a role
 }
 
 interface ChatMessage {
@@ -71,7 +71,9 @@ export async function POST(req: Request) {
                 content: { contains: keyword }
               })),
               page: {
-                userId: userId // userIdを直接指定
+                user: {
+                  id: userId
+                }
               }
             },
             select: {
@@ -148,16 +150,14 @@ export async function POST(req: Request) {
       return { contentToUpdate, context };
     });
 
-    // Prepare messages for OpenAI API
-    // Prepare messages for OpenAI API with name included
 
-    const openAIFormattedMessages: ChatMessage[] = [
+    const openAIFormattedMessages = [
       {
         role: 'system',
         content: `以下の関連情報を参照して回答してください：
 参照情報： ${result.context}
 ユーザーの質問「${lastMessage.content}」に対して、上記の情報を参考に適切な回答を提供してください。存在する情報のみを使用し、情報が不足している場合はその旨を伝えてください。`
-      },
+      } as const,
       ...messages.map(msg => ({
         role: msg.role,
         content: msg.content
