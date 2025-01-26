@@ -97,25 +97,17 @@
       }),
     })
       .then((response) => {
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-
-        return new ReadableStream({
-          start(controller) {
-            function push() {
-              reader.read().then(({ done, value }) => {
-                if (done) {
-                  controller.close();
-                  return;
-                }
-                const text = decoder.decode(value);
-                appendMessage(text, false);
-                push();
-              });
-            }
-            push();
-          },
-        });
+        if (!response.ok) throw new Error(response.statusText);
+        return new Response(response.body).text();
+      })
+      .then((text) => {
+        const botMessage = document.createElement("div");
+        botMessage.style.padding = "5px";
+        botMessage.style.backgroundColor = "#e1e1e1";
+        botMessage.style.marginBottom = "5px";
+        botMessage.style.borderRadius = "4px";
+        botMessage.textContent = text;
+        chatMessages.appendChild(botMessage);
       })
       .catch((error) => {
         console.error("Error:", error);
