@@ -26,15 +26,11 @@ model Page {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   userId    String
-  // リレーション：userId が外部キー
   user      User     @relation(fields: [userId], references: [id])
-  // ページ同士の親子関係
   parent    Page?    @relation("PageToPage", fields: [parentId], references: [id], onDelete: Cascade)
   children  Page[]   @relation("PageToPage")
-  // Blockとの1対多関係
   blocks    Block[]
 
-  // 複合ユニーク制約: (id, userId) の組み合わせでユニーク  
   @@unique([id, userId])
   @@index([userId], name: "Page_userId_idx")
 }
