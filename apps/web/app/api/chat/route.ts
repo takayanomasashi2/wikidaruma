@@ -71,9 +71,7 @@ export async function POST(req: Request) {
                 content: { contains: keyword }
               })),
               page: {
-                user: {
-                  id: userId
-                }
+                userId: userId  // Directly using userId in the page filter
               }
             },
             select: {
@@ -83,6 +81,7 @@ export async function POST(req: Request) {
             },
             take: 5
           });
+
 
           contentToUpdate = keywordResults.map(item => ({
             content: item.content,
