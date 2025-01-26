@@ -1,46 +1,58 @@
-// app/dashboard/page.tsx の先頭に追加
+// app/dashboard/page.tsx
 "use client";
 
-import { useEffect, useState } from 'react';
-import { usePages } from '@/hooks/usePages';
-import { Button } from '@/components/tailwind/ui/button';
-import { NestedPageEditor } from '@/components/NestedPageEditor';
+import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
+import { redirect } from "next/navigation";
+import usePages from "@/hooks/usePages";
+import { Button } from "@/components/tailwind/ui/button";
+import { NestedPageEditor } from "@/components/NestedPageEditor";
 import { useToast } from "@/components/tailwind/ui/use-toast";
-
-import { Dialog, DialogContent, DialogTrigger } from "@/components/tailwind/ui/dialog";
+import { PageTree } from "@/components/PageTree";
 import Menu from "@/components/tailwind/ui/menu";
-import { ScrollArea } from "@/components/tailwind/ui/scroll-area";
-import { BookOpen, GithubIcon } from "lucide-react";
-import Link from "next/link";
-
+import type { Page } from "@prisma/client";
+import { Plus } from "lucide-react";
 
 export default function DashboardPage() {
-  const { pages, error, fetchPages, createPage, updatePage, deletePage } = usePages();
+  const { data: session, status } = useSession();
+  const { pages, error, fetchPages, createPage, updatePage, deletePage } =
+    usePages(session);
   const { toast } = useToast();
   const [currentPageId, setCurrentPageId] = useState<string | undefined>();
   const [isCreatingPage, setIsCreatingPage] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // ページ一覧の初回ロード
-  useEffect(() => {
-    fetchPages();
-  }, [fetchPages]);
+  const currentPage = pages.reduce((found, page) => {
+    if (found) return found;
+    if (page.id === currentPageId) return page;
+    return page.children?.find((child) => child.id === currentPageId) || null;
+  }, null as Page | null);
 
-  // 最初のページを選択
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      redirect("/login");
+    }
+  }, [status]);
+
+  useEffect(() => {
+    if (session?.user?.id) {
+      fetchPages();
+    }
+  }, [fetchPages, session]);
+
   useEffect(() => {
     if (pages.length > 0 && !currentPageId) {
-      const rootPage = pages.find(page => page.parentId === null);
+      const rootPage = pages.find((page) => page.parentId === null);
       setCurrentPageId(rootPage ? rootPage.id : pages[0].id);
     }
   }, [pages, currentPageId]);
 
-  // エラー処理
   useEffect(() => {
     if (error) {
       toast({
         variant: "destructive",
         title: "エラー",
-        description: error
+        description: error,
       });
     }
   }, [error, toast]);
@@ -51,9 +63,9 @@ export default function DashboardPage() {
     setIsLoading(true);
 
     try {
-      const baseTitle = 'New Page';
-      const existingTitles = pages.map(p => p.title);
-      
+      const baseTitle = "New Page";
+      const existingTitles = pages.map((p) => p.title);
+
       let newTitle = baseTitle;
       let counter = 1;
       while (existingTitles.includes(newTitle)) {
@@ -63,21 +75,19 @@ export default function DashboardPage() {
 
       const parentId = pages.length === 0 ? null : undefined;
       const newPage = await createPage(newTitle, parentId);
-      // ページ一覧を更新
       await fetchPages();
-      // 新しいページに移動
       setCurrentPageId(newPage.id);
-      
+
       toast({
         title: "成功",
-        description: "ページを作成しました"
+        description: "ページを作成しました",
       });
     } catch (error) {
-      console.error('Error creating page:', error);
+      console.error("Error creating page:", error);
       toast({
         variant: "destructive",
         title: "エラー",
-        description: "ページの作成に失敗しました"
+        description: "ページの作成に失敗しました",
       });
     } finally {
       setIsCreatingPage(false);
@@ -85,16 +95,16 @@ export default function DashboardPage() {
     }
   };
 
-  const handleCreateSubPage = async () => {
-    if (!currentPageId || isCreatingPage || isLoading) return;
+  const handleCreateSubPage = async (parentId: string) => {
+    if (isCreatingPage || isLoading) return;
     setIsCreatingPage(true);
     setIsLoading(true);
 
     try {
-      const baseTitle = 'New Subpage';
+      const baseTitle = "New Subpage";
       const existingSubpageTitles = pages
-        .filter(p => p.parentId === currentPageId)
-        .map(p => p.title);
+        .filter((p) => p.parentId === parentId)
+        .map((p) => p.title);
 
       let newTitle = baseTitle;
       let counter = 1;
@@ -103,23 +113,20 @@ export default function DashboardPage() {
         counter++;
       }
 
-      const newPage = await createPage(newTitle, currentPageId); // 親ページの ID を設定
-      // ページ一覧を再取得
+      const newPage = await createPage(newTitle, parentId);
       await fetchPages();
-
-      // サブページ作成後、即座に currentPageId を更新
-      setCurrentPageId(newPage.id);  // サブページの ID を設定
+      setCurrentPageId(newPage.id);
 
       toast({
         title: "成功",
-        description: "サブページを作成しました"
+        description: "サブページを作成しました",
       });
     } catch (error) {
-      console.error('Error creating subpage:', error);
+      console.error("Error creating subpage:", error);
       toast({
         variant: "destructive",
         title: "エラー",
-        description: "サブページの作成に失敗しました"
+        description: "サブページの作成に失敗しました",
       });
     } finally {
       setIsCreatingPage(false);
@@ -127,95 +134,72 @@ export default function DashboardPage() {
     }
   };
 
-  const handleDeletePage = async (pageId: string) => {
-    if (isLoading) return;
-    setIsLoading(true);
-
+  const handleUpdatePage = async (
+    id: string,
+    updates: { title?: string; content?: string },
+  ) => {
     try {
-      const confirmDelete = window.confirm('本当にこのページを削除しますか？');
-      if (!confirmDelete) {
-        setIsLoading(false);
-        return;
-      }
-
-      await deletePage(pageId);
-      
-      // ページ一覧を更新
-      await fetchPages();
-      
-      // currentPageId が削除されたページの場合、他のページに移動
-      if (currentPageId === pageId) {
-        const remainingPages = pages.filter(p => p.id !== pageId);
-        if (remainingPages.length > 0) {
-          const rootPage = remainingPages.find(page => page.parentId === null);
-          setCurrentPageId(rootPage ? rootPage.id : remainingPages[0].id);
-        } else {
-          setCurrentPageId(undefined);
-        }
-      }
-
-      toast({
-        title: "成功",
-        description: "ページを削除しました"
-      });
+      await updatePage(id, updates);
     } catch (error) {
-      console.error('Error deleting page:', error);
+      console.error("Error updating page:", error);
       toast({
         variant: "destructive",
         title: "エラー",
-        description: "ページの削除に失敗しました"
+        description: "ページの更新に失敗しました",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const handleUpdatePage = async (id: string, content: string) => {
-    try {
-      await updatePage(id, { content });
-    } catch (error) {
-      console.error('Error updating page:', error);
-      toast({
-        variant: "destructive",
-        title: "エラー",
-        description: "ページの更新に失敗しました"
-      });
-    }
-  };
+  if (status === "loading") {
+    return <div>Loading...</div>;
+  }
+
+  if (!session?.user) {
+    return null;
+  }
 
   return (
-    <div className="p-4 flex flex-col space-y-4">
-      <div className="flex w-full max-w-screen-lg items-center gap-2 px-4 sm:mb-[calc(2vh)]">
-        <Menu />
-      </div>
-      <div className="flex space-x-2">
-        <Button 
-          onClick={handleCreateNewPage}
-          disabled={isCreatingPage || isLoading}
-        >
-          新規ページ作成
-        </Button>
-        {currentPageId && (
-          <Button 
-            variant="secondary" 
-            onClick={handleCreateSubPage}
+    <div className="flex h-screen">
+      <div className="w-64 bg-gray-50 border-r">
+        <div className="p-4">
+          <Button
+            onClick={handleCreateNewPage}
             disabled={isCreatingPage || isLoading}
+            variant="ghost"
+            className="w-full flex items-center gap-2"
           >
-            サブページ作成
+            <Plus className="h-4 w-4" />
+            新規ページ追加
           </Button>
-        )}
-      </div>
-      {pages.length > 0 && (
-        <NestedPageEditor
+        </div>
+        <PageTree
           pages={pages}
-          currentPageId={currentPageId}
-          onUpdatePage={handleUpdatePage}
-          onDeletePage={handleDeletePage}
+          selectedPageId={currentPageId || ""}
           onSelectPage={setCurrentPageId}
-          onUpdatePageTitle={(id, title) => updatePage(id, { title })}
+          onDeletePage={deletePage}
+          onUpdatePage={(id, updates) =>
+            updatePage(id, { title: updates.title })
+          }
+          onCreateSubPage={handleCreateSubPage}
         />
-      )}
+      </div>
+      <div className="flex-1">
+        <div className="flex justify-end items-center p-4">
+          <Menu />
+        </div>
+        <main className="p-4">
+          {currentPageId && (
+            <NestedPageEditor
+              pageId={currentPageId}
+              onUpdate={handleUpdatePage}
+              initialContent={
+                pages.find((p) => p.id === currentPageId)?.content
+              }
+              initialTitle={currentPage?.title}
+            />
+          )}
+        </main>
+      </div>
     </div>
   );
 }
-

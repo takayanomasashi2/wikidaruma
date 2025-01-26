@@ -1,51 +1,62 @@
+// app/api/pages/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from "next-auth/next";
+import { auth } from '@/app/auth';
 
-export async function PATCH(request: NextRequest) {
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    const id = request.nextUrl.pathname.split('/').pop();
-    if (!id) {
-      return NextResponse.json({ error: 'ID not found' }, { status: 400 });
-    }
-
-    const { title, content } = await request.json();
-    
-    const page = await prisma.page.update({
-      where: { id },
-      data: {
-        title,
-        content,
-        updatedAt: new Date(),
-      },
+    await prisma.page.delete({
+      where: {
+        id_userId: {
+          id: params.id,
+          userId: session.user.id
+        }
+      }
     });
-    
-    return NextResponse.json(page);
+
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error updating page:', error);
-    return NextResponse.json(
-      { error: 'Failed to update page' },
-      { status: 500 }
-    );
+    console.error('Error:', error);
+    return NextResponse.json({ error: 'Failed to delete page' }, { status: 500 });
   }
 }
 
-export async function DELETE(request: NextRequest) {
-  try {
-    const id = request.nextUrl.pathname.split('/').pop();
-    if (!id) {
-      return NextResponse.json({ error: 'ID not found' }, { status: 400 });
-    }
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-    await prisma.page.delete({
-      where: { id },
+  try {
+    const data = await req.json();
+    const updatedPage = await prisma.page.update({
+      where: {
+        id_userId: {
+          id: params.id,
+          userId: session.user.id
+        }
+      },
+      data: {
+        title: data.title,
+        content: data.content
+      }
     });
-    
-    return NextResponse.json({ success: true });
+    return NextResponse.json(updatedPage);
   } catch (error) {
-    console.error('Error deleting page:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete page' },
-      { status: 500 }
-    );
+    console.error('Error:', error);
+    return NextResponse.json({ error: 'Failed to update page' }, { status: 500 });
   }
 }

@@ -1,3 +1,4 @@
+// app/auth.ts:
 import NextAuth, { getServerSession } from "next-auth"
 import Google from "next-auth/providers/google"
 import type { DefaultSession, AuthOptions } from "next-auth"

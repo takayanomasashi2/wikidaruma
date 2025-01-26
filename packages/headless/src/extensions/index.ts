@@ -35,7 +35,7 @@ const PlaceholderExtension = Placeholder.configure({
     }
 
     // その他のノードにはデフォルトのプレースホルダーを適用
-    return "Press '/' for commands";
+    return "コマンド入力は「/（スラッシュ）」";
   },
   includeChildren: true, // 子ノードも考慮
 });
