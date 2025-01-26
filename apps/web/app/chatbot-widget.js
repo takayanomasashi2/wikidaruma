@@ -1,3 +1,4 @@
+// chatbot-widget.js
 (function () {
   const params = new URLSearchParams(window.location.search);
   const userId =
@@ -62,15 +63,6 @@
   chatButton.style.border = "none";
   chatButton.style.borderRadius = "4px";
   chatButton.style.cursor = "pointer";
-  chatButton.style.transition = "background-color 0.3s";
-
-  chatButton.addEventListener("mouseover", () => {
-    chatButton.style.backgroundColor = "#45a049";
-  });
-
-  chatButton.addEventListener("mouseout", () => {
-    chatButton.style.backgroundColor = "#4CAF50";
-  });
 
   const appendMessage = (message, isUser = true) => {
     const messageElement = document.createElement("div");
@@ -87,15 +79,9 @@
     chatMessages.scrollTop = chatMessages.scrollHeight;
   };
 
-  let isProcessing = false;
-
   const handleSendMessage = () => {
     const message = chatInput.value.trim();
-    if (!message || isProcessing) return;
-
-    isProcessing = true;
-    chatButton.disabled = true;
-    chatButton.style.backgroundColor = "#cccccc";
+    if (!message) return;
 
     appendMessage(message, true);
     chatInput.value = "";
@@ -104,48 +90,34 @@
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Accept: "text/event-stream",
       },
       body: JSON.stringify({
-        userId: userId,
         message: message,
+        userId: userId,
       }),
     })
       .then((response) => {
         if (!response.ok) throw new Error(response.statusText);
         const reader = response.body.getReader();
-        return new ReadableStream({
-          start(controller) {
-            return pump();
-            function pump() {
-              return reader.read().then(({ done, value }) => {
-                if (done) {
-                  controller.close();
-                  return;
-                }
-                controller.enqueue(value);
-                return pump();
-              });
-            }
-          },
+        const decoder = new TextDecoder();
+
+        return reader.read().then(function processText({ done, value }) {
+          if (done) return;
+          const text = decoder.decode(value);
+          appendMessage(text, false);
+          return reader.read().then(processText);
         });
       })
-      .then((stream) => new Response(stream))
-      .then((response) => response.text())
-      .then((text) => appendMessage(text, false))
       .catch((error) => {
         console.error("Error:", error);
         appendMessage("エラーが発生しました。", false);
-      })
-      .finally(() => {
-        isProcessing = false;
-        chatButton.disabled = false;
-        chatButton.style.backgroundColor = "#4CAF50";
       });
   };
 
   chatButton.addEventListener("click", handleSendMessage);
   chatInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter") {
       e.preventDefault();
       handleSendMessage();
     }
