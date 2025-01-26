@@ -100,6 +100,7 @@
     appendMessage(message, true);
     chatInput.value = "";
 
+    // handleSendMessage関数内のtry-catchブロックを修正
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -112,27 +113,16 @@
             {
               role: "user",
               content: message,
-              userId: userId,
             },
           ],
         }),
       });
 
-      if (!response.ok) throw new Error("Network response was not ok");
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const text = decoder.decode(value);
-        appendMessage(text, false);
-      }
+      const data = await response.text();
+      appendMessage(data, false);
     } catch (error) {
       console.error("Error:", error);
-      appendMessage("エラーが発生しました。もう一度お試しください。", false);
+      appendMessage("エラーが発生しました。", false);
     } finally {
       isProcessing = false;
       chatButton.disabled = false;
