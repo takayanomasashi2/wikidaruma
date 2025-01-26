@@ -1,3 +1,4 @@
+// app/auth.ts
 import NextAuth, { getServerSession } from "next-auth";
 import Google from "next-auth/providers/google";
 import type { DefaultSession, AuthOptions } from "next-auth";
@@ -14,31 +15,22 @@ declare module "next-auth" {
 }
 
 export const authOptions: AuthOptions = {
+  adapter: PrismaAdapter(prisma),
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
   ],
-  adapter: PrismaAdapter(prisma), // Prisma のアダプターを設定
   pages: {
     signIn: '/login',
   },
-  callbacks: {
-    // JWT コールバック - ユーザー情報をトークンに追加
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id; // Google 認証後の user.id をトークンに保存
-      }
-      return token;
-    },
-    // セッションコールバック - セッションにユーザーIDを追加
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string;
-      }
+   callbacks: {
+    // Existing callbacks
+    async session({ session, user }) {
+      session.user.id = user.id;
       return session;
-    },
+    }
   },
   secret: process.env.NEXTAUTH_SECRET, // セッション用のシークレットを設定
 };
