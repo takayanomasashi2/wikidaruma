@@ -20,7 +20,10 @@ export default function LoginPage() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl text-center">ログイン</CardTitle>
           <CardDescription className="text-center">
-            利用を開始するにはログインしてください
+            利用を開始するにはログインが必要です。
+          </CardDescription>
+          <CardDescription className="text-center">
+            株式会社ブルテナサス　高谷開発
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
