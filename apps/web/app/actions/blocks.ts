@@ -8,85 +8,153 @@ import axios from 'axios';
 import { Prisma } from "@prisma/client";
 
 export async function getEmbedding(text: string): Promise<number[]> {
-   try {
-       const response = await axios.post(
-           "https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
-           {
-               inputs: text,
-               options: { wait_for_model: true, use_cache: true }
-           },
-           {
-               headers: {
-                   Authorization: `Bearer ${process.env.NEXT_PUBLIC_HUGGING_FACE_API_KEY}`,
-                   "Content-Type": "application/json"
-               }
-           }
-       );
+    // Validate the input
+    if (typeof text !== 'string' || !text.trim()) {
+        throw new Error('Invalid input: text must be a non-empty string');
+    }
 
-       if (Array.isArray(response.data)) return response.data;
-       throw new Error("Unexpected response format");
-   } catch (error) {
-       console.error("Embedding generation error:", error);
-       throw error;
-   }
+    // APIキーの確認
+    const apiKey = process.env.NEXT_PUBLIC_HUGGING_FACE_API_KEY;
+    if (!apiKey) {
+        throw new Error('HuggingFace API key is not configured');
+    }
+
+    const payload = {
+        inputs: text.trim(),
+        options: { wait_for_model: true, use_cache: true }
+    };
+
+    try {
+        const response = await axios.post(
+            'https://api-inference.huggingface.co/pipeline/feature-extraction/sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2',
+            payload,
+            {
+                headers: {
+                    Authorization: `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json',
+                }
+            }
+        );
+
+        if (!Array.isArray(response.data)) {
+            console.error('Unexpected response format:', response.data);
+            throw new Error('Invalid response format');
+        }
+
+        return response.data.map(value => {
+            const num = Number(value);
+            if (isNaN(num)) {
+                throw new Error('Invalid number in embedding');
+            }
+            return num;
+        });
+    } catch (error) {
+        console.error('Embedding generation error:', error);
+        if (error.response?.data) {
+            console.error('API error response:', error.response.data);
+        }
+        throw error;
+    }
 }
 
-export async function createBlock(blockData: Partial<Block>): Promise<Block> {
-   if (!blockData?.pageId) throw new Error("pageId is required");
-
-   const id = generateBlockId(blockData.pageId);
-   let embedding: number[] | null = null;
-
-   try {
-       if (blockData.embedding) {
-           embedding = Array.isArray(blockData.embedding) ? blockData.embedding :
-                      typeof blockData.embedding === 'string' ? JSON.parse(blockData.embedding) :
-                      typeof blockData.embedding === 'object' ? Object.values(blockData.embedding) :
-                      null;
-       }
-
-       if (!embedding && blockData.content?.trim()) {
-           embedding = await getEmbedding(blockData.content);
-       }
-
-       if (!embedding || embedding.length === 0) {
-           throw new Error("Valid embedding is required");
-       }
-
-      await prisma.$executeRaw`
-    INSERT INTO "Block" (
-        id, type, content, "pageId", "order", checked, embedding,
-        "useCount", "avgSimilarity", "createdAt", "updatedAt"
-    ) VALUES (
-        ${id},
-        (${blockData.type || 'text'})::text::"BlockType",
-        ${blockData.content || ''},
-        ${blockData.pageId},
-        ${blockData.order || 0},
-        ${blockData.checked ?? false},
-        ${`[${embedding.join(',')}]`}::vector(384),
-        0,
-        0,
-        NOW(),
-        NOW()
-    );
-`;
-
-       const createdBlock = await prisma.block.findUnique({
-           where: { id }
-       });
-
-       if (!createdBlock) throw new Error("Failed to create block");
-
-       return {
-           ...createdBlock,
-           embedding: embedding
-       } as Block;
-   } catch (error) {
-       console.error("Block creation failed:", error);
-       throw error;
-   }
+export async function getBlocksByPageId(pageId: string): Promise<Block[]> {
+    try {
+        const blocks = await prisma.$queryRaw`
+            SELECT 
+                id, 
+                type, 
+                content, 
+                "pageId", 
+                "order", 
+                checked,
+                embedding::text as embedding,
+                "useCount",
+                "avgSimilarity",
+                "createdAt", 
+                "updatedAt"
+            FROM "Block"
+            WHERE "pageId" = ${pageId}
+            ORDER BY "order" ASC
+        `;
+        
+        return (blocks as any[]).map(block => ({
+            ...block,
+            type: block.type as BlockType,
+            embedding: block.embedding
+                ? JSON.parse(block.embedding.replace('[', '[').replace(']', ']'))
+                : []
+        }));
+    } catch (error) {
+        console.error(`Error fetching blocks for page ${pageId}:`, error);
+        return [];
+    }
 }
+
+export async function upsertBlock(blockData: Partial<Block>): Promise<void> {
+    if (!blockData?.pageId) throw new Error("pageId is required");
+
+    const id = blockData.id || generateBlockId(blockData.pageId);
+    let embedding: number[] | null = null;
+
+    try {
+        if (blockData.embedding) {
+            embedding = Array.isArray(blockData.embedding) ? blockData.embedding :
+                       typeof blockData.embedding === 'string' ? JSON.parse(blockData.embedding) :
+                       typeof blockData.embedding === 'object' ? Object.values(blockData.embedding) :
+                       null;
+        }
+
+        if (!embedding && blockData.content?.trim()) {
+            embedding = await getEmbedding(blockData.content);
+        }
+
+        if (!embedding || embedding.length === 0) {
+            throw new Error("Valid embedding is required");
+        }
+
+        await prisma.$executeRaw`
+            INSERT INTO "Block" (
+                id, 
+                type, 
+                content, 
+                "pageId", 
+                "order", 
+                checked, 
+                embedding,
+                "useCount", 
+                "avgSimilarity", 
+                "createdAt", 
+                "updatedAt"
+            ) 
+            VALUES (
+                ${id},
+                ${blockData.type || 'text'}::text::"BlockType",
+                ${blockData.content || ''},
+                ${blockData.pageId},
+                ${blockData.order || 0},
+                ${blockData.checked ?? false},
+                ${Prisma.raw(`'[${embedding.join(',')}]'::vector`)},
+                ${blockData.useCount || 0},
+                ${blockData.avgSimilarity || 0},
+                NOW(),
+                NOW()
+            )
+            ON CONFLICT ("pageId", "order") 
+            DO UPDATE SET
+                type = EXCLUDED.type,
+                content = EXCLUDED.content,
+                checked = EXCLUDED.checked,
+                embedding = EXCLUDED.embedding,
+                "useCount" = COALESCE(EXCLUDED."useCount", "Block"."useCount"),
+                "avgSimilarity" = COALESCE(EXCLUDED."avgSimilarity", "Block"."avgSimilarity"),
+                "updatedAt" = NOW()
+        `;
+    } catch (error) {
+        console.error("Error upserting block:", error);
+        throw error;
+    }
+}
+
 
 function mapBlockType(type: string): BlockType {
  const validTypes: Record<string, BlockType> = {
@@ -115,61 +183,66 @@ function mapBlockType(type: string): BlockType {
  return validTypes[type] || 'text';
 }
 
-export async function getBlocksByPageId(pageId: string): Promise<Block[]> {
-    try {
-        const blocks = await prisma.$queryRaw`
-            SELECT 
-                id, type, content, "pageId", "order", checked,
-                embedding::float[] as embedding,
-                "createdAt", "updatedAt"
-            FROM "Block"
-            WHERE "pageId" = ${pageId}
-            ORDER BY "order" ASC
-        `;
-        
-        return (blocks as any[]).map(block => ({
-            ...block,
-            type: block.type as BlockType,
-            embedding: Array.isArray(block.embedding) ? block.embedding : []
-        }));
-    } catch (error) {
-        console.error(`Error fetching blocks for page ${pageId}:`, error);
-        return [];
-    }
-}
-
 export async function updateBlock(id: string, blockData: Partial<Block>): Promise<Block> {
- if (!blockData) throw new Error('Block data is required');
+    if (!blockData) throw new Error('Block data is required');
 
- try {
-   const mappedType = mapBlockType(blockData.type);
-   let embedding: number[] | null = null;
-  
-   if (blockData.content?.trim()) {
-     embedding = await getEmbedding(blockData.content);
-   }
+    try {
+        let embedding: number[] | null = null;
+        
+        if (blockData.content?.trim()) {
+            embedding = await getEmbedding(blockData.content);
+        }
 
-   const result = await prisma.$queryRaw`
-     UPDATE "Block"
-     SET
-       type = ${mappedType},
-       content = ${blockData.content},
-       "order" = ${blockData.order},
-       checked = ${blockData.checked},
-       embedding = ${embedding ? `[${embedding.join(',')}]::vector(384)` : null},
-       "updatedAt" = NOW()
-     WHERE id = ${id}
-     RETURNING id, type, content, "pageId", "order", checked, embedding::float[], "createdAt", "updatedAt"
-   `;
+        if (embedding) {
+            const blocks = await prisma.$queryRaw`
+                UPDATE "Block"
+                SET
+                    type = COALESCE(${blockData.type}::text::"BlockType", type),
+                    content = COALESCE(${blockData.content}, content),
+                    "order" = COALESCE(${blockData.order}, "order"),
+                    checked = COALESCE(${blockData.checked}, checked),
+                    embedding = ${Prisma.raw(`'[${embedding.join(',')}]'::vector`)},
+                    "updatedAt" = NOW()
+                WHERE id = ${id}
+                RETURNING id, type, content, "pageId", "order", checked, embedding::text as embedding, "createdAt", "updatedAt"
+            `;
 
-   const updatedBlock = (result as any[])[0];
-   return {
-     ...updatedBlock,
-     embedding: embedding ?? []
-   } as Block;
- } catch (error) {
-   throw error;
- }
+            if (Array.isArray(blocks) && blocks.length > 0) {
+                const block = blocks[0];
+                return {
+                    ...block,
+                    type: block.type as BlockType,
+                    embedding: block.embedding ? JSON.parse(block.embedding) : []
+                };
+            }
+        } else {
+            const blocks = await prisma.$queryRaw`
+                UPDATE "Block"
+                SET
+                    type = COALESCE(${blockData.type}::text::"BlockType", type),
+                    content = COALESCE(${blockData.content}, content),
+                    "order" = COALESCE(${blockData.order}, "order"),
+                    checked = COALESCE(${blockData.checked}, checked),
+                    "updatedAt" = NOW()
+                WHERE id = ${id}
+                RETURNING id, type, content, "pageId", "order", checked, embedding::text as embedding, "createdAt", "updatedAt"
+            `;
+
+            if (Array.isArray(blocks) && blocks.length > 0) {
+                const block = blocks[0];
+                return {
+                    ...block,
+                    type: block.type as BlockType,
+                    embedding: block.embedding ? JSON.parse(block.embedding) : []
+                };
+            }
+        }
+
+        throw new Error('Block not found');
+    } catch (error) {
+        console.error('Error updating block:', error);
+        throw new Error('Failed to update block: ' + (error as Error).message);
+    }
 }
 
 

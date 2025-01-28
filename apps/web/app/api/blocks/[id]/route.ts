@@ -4,26 +4,20 @@ import { NextResponse } from "next/server";
 import { updateBlock, deleteBlock } from "@/app/actions/blocks";
 
 export async function PATCH(
-  request: Request,
-  context: { params: { id: string } }
+    req: Request,
+    { params }: { params: { id: string } }
 ) {
-  const { id } = context.params; // Access params directly
-
-  try {
-    const blockData = await request.json();
-
-    if (!blockData) {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    try {
+        const data = await req.json();
+        const block = await updateBlock(params.id, data);
+        return NextResponse.json(block);
+    } catch (error) {
+        console.error('Error updating block:', error);
+        return NextResponse.json(
+            { error: 'Failed to update block' },
+            { status: 500 }
+        );
     }
-
-    const updatedBlock = await updateBlock(id, blockData);
-    return NextResponse.json(updatedBlock);
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to update block' },
-      { status: 500 }
-    );
-  }
 }
 
 export async function DELETE(
