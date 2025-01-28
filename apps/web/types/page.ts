@@ -43,6 +43,8 @@ export interface Block {
     embedding: number[]; // 正しい型を定義
     createdAt?: Date;
     updatedAt?: Date;
+    useCount: number;
+    avgSimilarity: number;
 }
 
 export interface EditorProps {

@@ -1,8 +1,6 @@
 // api/blocks/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
-import { createBlock, getBlocksByPageId } from "@/app/actions/blocks";
-import { getEmbedding } from '@/utils/embedding';
+import { upsertBlock, getBlocksByPageId } from "@/app/actions/blocks";
 
 export async function GET(req: NextRequest) {
     try {
@@ -18,34 +16,35 @@ export async function GET(req: NextRequest) {
     }
 }
 
-export async function POST(req: NextRequest) {
-   try {
-       const { content, type, order, checked, pageId, embedding } = await req.json();
-       
-       if (!pageId) {
-           return NextResponse.json(
-               { error: "pageId is required" },
-               { status: 400 }
-           );
-       }
+export async function POST(req: Request) {
+  try {
+    const data = await req.json();
+    
+    if (!data.content?.trim()) {
+      return NextResponse.json({ error: 'Content is required' }, { status: 400 });
+    }
 
-       const blockEmbedding = embedding || await getEmbedding(content);
-       
-       const newBlock = await createBlock({
-           content,
-           type,
-           order,
-           checked,
-           pageId,
-           embedding: blockEmbedding
-       });
+    if (!data.pageId) {
+      return NextResponse.json({ error: 'pageId is required' }, { status: 400 });
+    }
 
-       return NextResponse.json(newBlock, { status: 201 });
-   } catch (error) {
-       console.error("Embedding generation error:", error);
-       return NextResponse.json(
-           { error: String(error) },
-           { status: 500 }
-       );
-   }
+    try {
+      await upsertBlock({
+        pageId: data.pageId,
+        type: data.type || 'text',
+        content: data.content,
+        order: data.order || 0,
+      });
+
+      return NextResponse.json({ success: true }, { status: 201 });
+
+    } catch (error) {
+      console.error('Block creation error:', error);
+      return NextResponse.json({ error: 'Failed to create block with embedding' }, { status: 500 });
+    }
+
+  } catch (error) {
+    console.error('Request parsing error:', error);
+    return NextResponse.json({ error: 'Invalid request data' }, { status: 400 });
+  }
 }
