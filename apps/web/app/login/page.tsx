@@ -23,7 +23,7 @@ export default function LoginPage() {
             利用を開始するにはログインが必要です。
           </CardDescription>
           <CardDescription className="text-center">
-            株式会社ブルテナサス　高谷開発
+            株式会社ブルテナサス　高谷
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
