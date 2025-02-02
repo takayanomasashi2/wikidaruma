@@ -6,7 +6,7 @@ import { auth } from "@/app/auth";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  
+
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -58,105 +58,108 @@ export async function POST(req: NextRequest) {
 
 // api/pages/route.ts を修正
 export async function DELETE(
- req: NextRequest,
- { params: { id } }: { params: { id: string } }
+  req: NextRequest,
+  { params: { id } }: { params: { id: string } }
 ) {
- const session = await auth();
- if (!session?.user?.id) {
-   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
- }
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
- try {
-   // ページの存在と所有権を確認
-   const page = await prisma.page.findUnique({
-     where: {
-       id_userId: {
-         id: id,
-         userId: session.user.id
-       }
-     }
-   });
+  try {
+    // ページの存在と所有権を確認
+    const page = await prisma.page.findUnique({
+      where: {
+        id_userId: {
+          id: id,
+          userId: session.user.id
+        }
+      }
+    });
 
-   if (!page) {
-     return NextResponse.json({ error: 'Page not found' }, { status: 404 });
-   }
+    if (!page) {
+      return NextResponse.json({ error: 'Page not found' }, { status: 404 });
+    }
 
-   await prisma.page.delete({
-     where: {
-       id_userId: {
-         id: id,
-         userId: session.user.id
-       }
-     }
-   });
+    await prisma.page.delete({
+      where: {
+        id_userId: {
+          id: id,
+          userId: session.user.id
+        }
+      }
+    });
 
-   return NextResponse.json({ success: true });
- } catch (error) {
-   console.error('Error:', error);
-   return NextResponse.json({ error: 'Failed to delete page' }, { status: 500 });
- }
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error:', error);
+    return NextResponse.json({ error: 'Failed to delete page' }, { status: 500 });
+  }
 }
 
 export async function PATCH(
- req: NextRequest,
- { params: { id } }: { params: { id: string } }
+  req: NextRequest,
+  { params: { id } }: { params: { id: string } }
 ) {
- const session = await auth();
- if (!session?.user?.id) {
-   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
- }
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
- try {
-   const data = await req.json();
-   const updatedPage = await prisma.page.update({
-     where: {
-       id_userId: {
-         id: id,
-         userId: session.user.id
-       }
-     },
-     data: {
-       title: data.title,
-       content: data.content,
-       parentId: data.parentId
-     }
-   });
-   return NextResponse.json(updatedPage);
- } catch (error) {
-   console.error('Error updating page:', error);
-   return NextResponse.json({ error: 'Failed to update page' }, { status: 500 });
- }
+  try {
+    const data = await req.json();
+    const updatedPage = await prisma.page.update({
+      where: {
+        id_userId: {
+          id: id,
+          userId: session.user.id
+        }
+      },
+      data: {
+        title: data.title,
+        content: data.content,
+        parentId: data.parentId
+      }
+    });
+    return NextResponse.json(updatedPage);
+  } catch (error) {
+    console.error('Error updating page:', error);
+    return NextResponse.json({ error: 'Failed to update page' }, { status: 500 });
+  }
 }
 
 export const GET = async (req: NextRequest) => {
- const session = await auth();
- if (!session?.user?.id) {
-   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
- }
+  const session = await auth();
+  if (!session?.user?.id) {
+    console.error("🔴 Unauthorized access attempt");
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
- try {
-   const pages = await prisma.page.findMany({
-     where: {
-       userId: session.user.id,
-       parentId: null
-     },
-     include: {
-       children: {
-         include: {
-           children: {
-             include: {
-               children: true
-             }
-           }
-         }
-       }
-     },
-     orderBy: { order: 'asc' }
-   });
+  try {
+    console.log("✅ Fetching pages for user:", session.user.id);
+    const pages = await prisma.page.findMany({
+      where: {
+        userId: session.user.id,
+        parentId: null,
+      },
+      include: {
+        children: {
+          include: {
+            children: {
+              include: {
+                children: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { order: "asc" },
+    });
 
-   return NextResponse.json(pages);
- } catch (error) {
-   console.error('Error fetching pages:', error);
-   return NextResponse.json({ error: 'Failed to fetch pages' }, { status: 500 });
- }
-}
+    console.log("✅ Pages retrieved:", pages);
+    return NextResponse.json(pages);
+  } catch (error) {
+    console.error("🔴 Error fetching pages:", error);
+    return NextResponse.json({ error: "Failed to fetch pages", details: error.message }, { status: 500 });
+  }
+};

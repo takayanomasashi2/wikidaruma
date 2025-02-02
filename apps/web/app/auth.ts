@@ -1,38 +1,72 @@
-// app/auth.ts
-import NextAuth, { getServerSession } from "next-auth";
-import Google from "next-auth/providers/google";
-import type { DefaultSession, AuthOptions } from "next-auth";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
+import NextAuth from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "@/lib/prisma";
+import bcrypt from "bcryptjs";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/authOptions"; // ✅ 修正
 
+export const auth = async () => await getServerSession(authOptions);
 
-declare module "next-auth" {
-  interface Session extends DefaultSession {
-    user?: {
-      id?: string;
-    } & DefaultSession["user"];
-  }
-}
-
-export const authOptions: AuthOptions = {
-  adapter: PrismaAdapter(prisma),
+const handler = NextAuth({
   providers: [
-    Google({
+    GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
-  ],
-  pages: {
-    signIn: '/login',
-  },
-   callbacks: {
-    // Existing callbacks
-    async session({ session, user }) {
-      session.user.id = user.id;
-      return session;
-    }
-  },
-  secret: process.env.NEXTAUTH_SECRET, // セッション用のシークレットを設定
-};
+    CredentialsProvider({
+      name: "メールアドレス",
+      credentials: {
+        email: { label: "メールアドレス", type: "email" },
+        password: { label: "パスワード", type: "password" }
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          throw new Error("メールアドレスとパスワードを入力してください。");
+        }
 
-export const auth = async () => await getServerSession(authOptions);
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email },
+        });
+
+        if (!user || !user.password) {
+          throw new Error("メールアドレスまたはパスワードが正しくありません。");
+        }
+
+        const isValid = await bcrypt.compare(credentials.password, user.password);
+        if (!isValid) {
+          throw new Error("メールアドレスまたはパスワードが正しくありません。");
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          accessToken: `dummy-token-${user.id}`, // ✅ トークンを追加（実際はJWTを生成）
+        };
+      }
+    })
+  ],
+  session: {
+    strategy: "jwt",
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+        token.accessToken = user.accessToken || "";  // ✅ `accessToken` を保証
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      session.user.id = token.id as string;
+      session.accessToken = token.accessToken as string;  // ✅ `accessToken` を確実にセット
+      return session;
+    },
+  },
+  pages: {
+    signIn: "/login",
+  },
+  debug: process.env.NODE_ENV === "development",
+});
+
+export { handler as GET, handler as POST };

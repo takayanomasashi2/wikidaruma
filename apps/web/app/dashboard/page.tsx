@@ -16,7 +16,7 @@ import { Plus } from "lucide-react";
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const { pages, error, fetchPages, createPage, updatePage, deletePage } =
-    usePages(session);
+    usePages();
   const { toast } = useToast();
   const [currentPageId, setCurrentPageId] = useState<string | undefined>();
   const [isCreatingPage, setIsCreatingPage] = useState(false);
