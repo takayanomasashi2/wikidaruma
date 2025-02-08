@@ -1,3 +1,4 @@
+// app/components/PageTree.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -12,11 +13,20 @@ import {
   Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Page } from "@/types/page";
-import { Button } from "./tailwind/ui/button";
+import type { PageWithChildren } from "@/types/page";
 
 interface PageTreeProps {
-  pages: Page[];
+  pages: PageWithChildren[];
+  selectedPageId: string;
+  onSelectPage: (pageId: string) => void;
+  onDeletePage: (pageId: string) => void;
+  onUpdatePage: (id: string, updates: { title: string }) => void;
+  onCreateSubPage: (parentId: string) => void;
+}
+
+interface PageTreeItemProps {
+  page: PageWithChildren;
+  level?: number;
   selectedPageId: string;
   onSelectPage: (pageId: string) => void;
   onDeletePage: (pageId: string) => void;
@@ -32,15 +42,7 @@ const PageTreeItem = ({
   onDeletePage,
   onUpdatePage,
   onCreateSubPage,
-}: {
-  page: Page;
-  level?: number;
-  selectedPageId: string;
-  onSelectPage: (pageId: string) => void;
-  onDeletePage: (pageId: string) => void;
-  onUpdatePage: (id: string, updates: { title?: string }) => void;
-  onCreateSubPage: (parentId: string) => void;
-}) => {
+}: PageTreeItemProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(page.title);

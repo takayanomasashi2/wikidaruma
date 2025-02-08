@@ -11,7 +11,7 @@ export type Page = {
 };
 
 // src/types/index.ts の BlockType 定義を確認
-export type BlockType = 
+export type BlockType =
   | 'text'
   | 'todo'
   | 'heading'
@@ -34,27 +34,33 @@ export type BlockType =
   | 'mark_link';
 
 export interface Block {
-    id: string;
-    type: BlockType;
-    content: string;
-    pageId: string;
-    order: number;
-    checked: boolean | null;
-    embedding: number[]; // 正しい型を定義
-    createdAt?: Date;
-    updatedAt?: Date;
-    useCount: number;
-    avgSimilarity: number;
+  id: string;
+  type: BlockType;
+  content: string;
+  pageId: string;
+  order: number;
+  checked: boolean | null;
+  embedding: number[]; // 正しい型を定義
+  createdAt?: Date;
+  updatedAt?: Date;
+  useCount: number;
+  avgSimilarity: number;
 }
 
 export interface EditorProps {
-    page: Page;
-    onUpdate: (pageId: string, content: string) => void;
-    onTitleChange: (pageId: string, title: string) => void;
+  page: Page;
+  onUpdate: (pageId: string, content: string) => void;
+  onTitleChange: (pageId: string, title: string) => void;
 }
 
 export interface BlockEditorProps {
-    blocks: Block[];
-    pageId: string;
-    onBlocksChange: (newBlocks: Block[]) => void;
+  blocks: Block[];
+  pageId: string;
+  onBlocksChange: (newBlocks: Block[]) => void;
+}
+
+import type { Page as PrismaPage } from "@prisma/client";
+
+export interface PageWithChildren extends PrismaPage {
+  children?: PageWithChildren[];
 }

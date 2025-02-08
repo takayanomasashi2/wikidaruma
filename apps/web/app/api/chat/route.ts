@@ -2,11 +2,13 @@
 import { PrismaClient } from '@prisma/client';
 import { getEmbedding } from '@/utils/embedding';
 import { OpenAI } from 'openai';
-import { StreamingTextResponse, experimental_StreamData, OpenAIStream } from 'ai';
+import { StreamingTextResponse, OpenAIStream } from 'ai';
 import { NextResponse } from 'next/server';
 
 const prisma = new PrismaClient();
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+const TRANSACTION_TIMEOUT = 30000; // 30秒に延長
 
 interface SimilarContentResult {
   content: string;
@@ -31,21 +33,12 @@ type ChatMessage = {
   content: string;
 }
 
-// POST handler
 export async function POST(req: Request) {
   try {
     const { messages, userId }: { messages: Message[]; userId: string } = await req.json();
-
     const stream = await processChat(messages, userId);
 
-    return new StreamingTextResponse(stream, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Access-Control-Allow-Origin': '*',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      }
-    });
+    return new StreamingTextResponse(stream);
   } catch (error) {
     console.error('Chat error:', error);
     return new NextResponse(JSON.stringify({ error: 'Failed to process chat' }), {
@@ -55,8 +48,6 @@ export async function POST(req: Request) {
   }
 }
 
-
-// GETリクエスト処理
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
@@ -64,30 +55,19 @@ export async function GET(req: Request) {
     const userId = url.searchParams.get('userId');
 
     if (!message || !userId) {
-      return new Response(JSON.stringify({ error: 'Missing message or userId' }), {
+      return new NextResponse(JSON.stringify({ error: 'Missing message or userId' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
-    const messages: Message[] = [
-      {
-        role: 'user',
-        content: message,
-        userId: userId,
-      }
-    ];
-
+    const messages: Message[] = [{ role: 'user', content: message, userId }];
     const stream = await processChat(messages, userId);
 
-
-    return new StreamingTextResponse(stream, {
-      headers: { 'Content-Type': 'text/event-stream' }
-    });
-
+    return new StreamingTextResponse(stream);
   } catch (error) {
     console.error('Chat error (GET):', error);
-    return new Response(JSON.stringify({ error: 'Failed to process chat' }), {
+    return new NextResponse(JSON.stringify({ error: 'Failed to process chat' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' }
     });
@@ -96,18 +76,16 @@ export async function GET(req: Request) {
   }
 }
 
-// processChat内の修正（PrismaクエリとOpenAIレスポンスのログ）
 async function processChat(messages: Message[], userId: string) {
-
-  if (!messages || messages.length === 0) {
+  if (!messages?.length) {
     throw new Error('No messages provided');
   }
 
   const lastMessage = messages[messages.length - 1];
+  const queryEmbedding = await getEmbedding(lastMessage.content);
 
-  const result = await prisma.$transaction(async (tx) => {
-    const queryEmbedding = await getEmbedding(lastMessage.content);
-
+  // トランザクション処理を最適化
+  const { contentToUpdate, context } = await prisma.$transaction(async (tx) => {
     const similarContents = await tx.$queryRaw<SimilarContentResult[]>`
       SELECT 
         content,
@@ -126,32 +104,27 @@ async function processChat(messages: Message[], userId: string) {
 
     let contentToUpdate = similarContents;
 
-    if (similarContents.length === 0) {
-      // Similar content fallback logic
-      const keywords = lastMessage.content.replace(/[はがのにをでやへと。、？！]/g, ' ').split(' ').filter(w => w.length > 0);
-      if (keywords.length > 0) {
+    if (!similarContents.length) {
+      const keywords = lastMessage.content
+        .replace(/[はがのにをでやへと。、？！]/g, ' ')
+        .split(' ')
+        .filter(w => w.length > 0);
+
+      if (keywords.length) {
         const keywordResults = await tx.block.findMany({
           where: {
             OR: keywords.map(keyword => ({
               content: { contains: keyword }
             })),
-            page: {
-              userId: userId
-            }
+            page: { userId }
           },
-          select: {
-            content: true,
-            pageId: true,
-            order: true
-          },
+          select: { content: true, pageId: true, order: true },
           take: 5
         });
 
         contentToUpdate = keywordResults.map(item => ({
-          content: item.content,
-          similarity: 0.3,
-          pageId: item.pageId,
-          order: item.order
+          ...item,
+          similarity: 0.3
         }));
       }
     }
@@ -188,33 +161,34 @@ async function processChat(messages: Message[], userId: string) {
       })
     );
 
-    const context = enhancedContent.map(item => {
-      let blockContext = '';
-      if (item.previousBlocks?.length) {
-        blockContext += item.previousBlocks.map(b => `前文脈: ${b}`).join('\n') + '\n';
-      }
-      blockContext += `内容: ${item.content}`;
-      if (item.followingBlocks?.length) {
-        blockContext += '\n' + item.followingBlocks.map(b => `後文脈: ${b}`).join('\n');
-      }
-      return blockContext;
-    }).join('\n\n');
+    const context = enhancedContent
+      .map(item => {
+        const parts = [];
+        if (item.previousBlocks?.length) {
+          parts.push(item.previousBlocks.map(b => `前文脈: ${b}`).join('\n'));
+        }
+        parts.push(`内容: ${item.content}`);
+        if (item.followingBlocks?.length) {
+          parts.push(item.followingBlocks.map(b => `後文脈: ${b}`).join('\n'));
+        }
+        return parts.join('\n');
+      })
+      .join('\n\n');
 
-    // Return both contentToUpdate and context
     return { contentToUpdate, context };
+  }, {
+    timeout: TRANSACTION_TIMEOUT,
+    maxWait: TRANSACTION_TIMEOUT
   });
 
   const apiMessages: ChatMessage[] = [
     {
       role: 'system',
       content: `以下の関連情報を参照して回答してください：
-参照情報： ${result.context}
+参照情報： ${context}
 ユーザーの質問「${messages[messages.length - 1].content}」に対して、上記の情報を参考に適切な回答を提供してください。`
     },
-    ...messages.map(msg => ({
-      role: msg.role,
-      content: msg.content
-    }))
+    ...messages.map(({ role, content }) => ({ role, content }))
   ];
 
   const response = await openai.chat.completions.create({
@@ -223,7 +197,5 @@ async function processChat(messages: Message[], userId: string) {
     stream: true
   });
 
-  const stream = OpenAIStream(response);
-  return stream;
+  return OpenAIStream(response);
 }
-
