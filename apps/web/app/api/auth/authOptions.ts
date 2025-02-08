@@ -1,3 +1,5 @@
+// app/api/auth/authOptions.ts
+
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
@@ -46,15 +48,23 @@ export const authOptions: NextAuthOptions = {
         strategy: "jwt",
     },
     callbacks: {
-        async jwt({ token, user }) {
+        async jwt({ token, user, account }) {
             if (user) {
                 token.id = user.id;
+                token.email = user.email;
                 token.accessToken = user.accessToken;
+            }
+            // GoogleProviderの場合はaccount.access_tokenを使用
+            if (account?.access_token) {
+                token.accessToken = account.access_token;
             }
             return token;
         },
         async session({ session, token }) {
-            session.user.id = token.id as string;
+            if (session.user) {
+                session.user.id = token.id as string;
+                session.user.accessToken = token.accessToken as string;
+            }
             session.accessToken = token.accessToken as string;
             return session;
         },

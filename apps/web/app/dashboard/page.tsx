@@ -12,6 +12,7 @@ import { PageTree } from "@/components/PageTree";
 import Menu from "@/components/tailwind/ui/menu";
 import type { Page } from "@prisma/client";
 import { Plus } from "lucide-react";
+import type { PageWithChildren } from "@/types/page";
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
@@ -26,7 +27,7 @@ export default function DashboardPage() {
     if (found) return found;
     if (page.id === currentPageId) return page;
     return page.children?.find((child) => child.id === currentPageId) || null;
-  }, null as Page | null);
+  }, null as PageWithChildren | null); // 変更
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -56,6 +57,8 @@ export default function DashboardPage() {
       });
     }
   }, [error, toast]);
+
+  console.log(session);
 
   const handleCreateNewPage = async () => {
     if (isCreatingPage || isLoading) return;
