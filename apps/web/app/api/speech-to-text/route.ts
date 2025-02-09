@@ -1,3 +1,4 @@
+// api/speech-to-text/route.ts
 import { NextResponse } from "next/server";
 import { SpeechClient, protos } from "@google-cloud/speech";
 import { Storage } from "@google-cloud/storage";

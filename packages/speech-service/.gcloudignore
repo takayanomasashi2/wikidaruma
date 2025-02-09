@@ -1,0 +1,12 @@
+# .gcloudignore
+.git
+.gitignore
+node_modules
+**/node_modules
+**/dist
+!packages/speech-service/dist
+!packages/speech-service/Dockerfile
+!packages/speech-service/package.json
+!apps/web/prisma/**
+*.md
+*.log
