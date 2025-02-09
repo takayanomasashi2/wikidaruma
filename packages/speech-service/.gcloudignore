@@ -10,3 +10,5 @@ node_modules
 !apps/web/prisma/**
 *.md
 *.log
+node_modules/
+dist/

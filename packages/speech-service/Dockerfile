@@ -1,4 +1,3 @@
-# Dockerfile
 FROM node:20-slim
 
 # Install FFmpeg and clean up
@@ -9,14 +8,14 @@ RUN apt-get update && \
 
 WORKDIR /app
 
-# Copy package files
+# Copy package.json first for better caching
 COPY package.json ./
-COPY prisma ./prisma/
-COPY tsconfig.json ./
-COPY src ./src/
 
-# Install all dependencies (including devDependencies for TypeScript build)
+# Install dependencies
 RUN npm install
+
+# Copy rest of the files
+COPY . .
 
 # Generate Prisma Client
 RUN npx prisma generate
@@ -30,5 +29,7 @@ RUN npm prune --production
 # Expose the port
 EXPOSE 8080
 
-# Start the server
+# Set host to 0.0.0.0 to accept external connections
+ENV HOST=0.0.0.0
+
 CMD ["node", "dist/index.js"]

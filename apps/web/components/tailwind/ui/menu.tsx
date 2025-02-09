@@ -36,8 +36,8 @@ export default function Menu() {
      <Image
        src={session.user.image}
        alt={session.user.name || "User avatar"}
-       width={40}
-       height={40}
+       width={30}
+       height={30}
        className="rounded-full ring-2 ring-primary"
      />
    </button>

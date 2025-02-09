@@ -89,57 +89,68 @@ const AudioUploader: React.FC<AudioUploaderProps> = ({
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const file = event.target.files?.[0];
+  if (!file) return;
 
-    setIsProcessing(true);
-    setProgress(0);
-    setStatus("ファイルを準備中...");
+  setIsProcessing(true);
+  setProgress(0);
+  setStatus("ファイルを準備中...");
 
-    try {
-      // アップロード開始
-      setStatus("音声ファイルをアップロード中...");
-      const data = await uploadWithProgress(file);
+  try {
+    // アップロード開始
+    setStatus("音声ファイルをアップロード中...");
+    const data = await uploadWithProgress(file);
 
-      if (data.text) {
-        // 音声処理とテキスト生成
-        setStatus("音声を解析中...");
-        startProcessingProgress(35, 75, 3000);
+    if (data.text) {
+      // 音声処理とテキスト生成
+      setStatus("音声を解析中...");
+      startProcessingProgress(35, 75, 3000);
+      
+      setTimeout(() => {
+        setStatus("テキストを生成中...");
+        startProcessingProgress(75, 100, 1000);
         
         setTimeout(() => {
-          setStatus("テキストを生成中...");
-          startProcessingProgress(75, 100, 1000);
-          
-          setTimeout(() => {
-            onTranscriptionComplete(data.text, file.name);
-            toast({
-              title: "成功",
-              description: "音声の文字起こしが完了しました",
-            });
-            setStatus("完了！");
-          }, 1000);
-        }, 3000);
-      } else {
-        throw new Error('音声処理の結果が不正です');
-      }
-    } catch (error) {
-      console.error('Audio processing error:', error);
-      toast({
-        variant: "destructive",
-        title: "エラー",
-        description: error instanceof Error ? error.message : "音声処理に失敗しました",
-      });
-    } finally {
-      setTimeout(() => {
-        setIsProcessing(false);
-        setProgress(0);
-        setStatus("音声ファイルから作成");
-        if (progressInterval.current) {
-          clearInterval(progressInterval.current);
-        }
-      }, 1500);
+          onTranscriptionComplete(data.text, file.name);
+          toast({
+            title: "成功",
+            description: "音声の文字起こしが完了しました",
+          });
+          // 完了後すぐにリセット
+          setIsProcessing(false);
+          setProgress(0);
+          setStatus("音声ファイルから作成");
+          if (progressInterval.current) {
+            clearInterval(progressInterval.current);
+          }
+          // ファイル入力をリセット
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        }, 1000);
+      }, 3000);
+    } else {
+      throw new Error('音声処理の結果が不正です');
     }
-  };
+  } catch (error) {
+    console.error('Audio processing error:', error);
+    toast({
+      variant: "destructive",
+      title: "エラー",
+      description: error instanceof Error ? error.message : "音声処理に失敗しました",
+    });
+    // エラー時もすぐにリセット
+    setIsProcessing(false);
+    setProgress(0);
+    setStatus("音声ファイルから作成");
+    if (progressInterval.current) {
+      clearInterval(progressInterval.current);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }
+};
 
   const handleButtonClick = () => {
     if (fileInputRef.current) {

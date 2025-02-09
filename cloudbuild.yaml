@@ -1,0 +1,45 @@
+steps:
+  # Setup build directory
+  - name: 'ubuntu'
+    args:
+      - 'bash'
+      - '-c'
+      - |
+        set -e  # Exit on any error
+        echo "Current directory contents:"
+        ls -la
+        echo "\nCreating build directory..."
+        mkdir -p /workspace/build/prisma
+        echo "\nCopying files..."
+        # Copy speech-service files
+        cp packages/speech-service/package.json /workspace/build/
+        cp packages/speech-service/tsconfig.json /workspace/build/
+        cp packages/speech-service/env.yaml /workspace/build/
+        cp -r packages/speech-service/src /workspace/build/
+        cp packages/speech-service/Dockerfile /workspace/build/
+        # Copy Prisma files
+        cp apps/web/prisma/schema.prisma /workspace/build/prisma/
+        cp -r apps/web/prisma/migrations /workspace/build/prisma/
+        echo "\nFinal build directory contents:"
+        ls -la /workspace/build
+        echo "\nPrisma directory contents:"
+        ls -la /workspace/build/prisma
+
+  # Build the container
+  - name: 'gcr.io/cloud-builders/docker'
+    args: 
+      - 'build'
+      - '--no-cache'
+      - '--platform'
+      - 'linux/amd64'
+      - '--progress=plain'
+      - '-t'
+      - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/gcr-repo/speech-service'
+      - '/workspace/build'
+
+images:
+  - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/gcr-repo/speech-service'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  dynamicSubstitutions: true
