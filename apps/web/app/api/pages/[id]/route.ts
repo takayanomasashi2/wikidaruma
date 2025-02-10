@@ -53,19 +53,42 @@ export async function DELETE(
   }
 
   try {
-    await prisma.page.delete({
-      where: {
-        id: params.id,
-        userId: session.user.id,
-      },
+    // トランザクションを使用して、関連するブロックとページを削除
+    await prisma.$transaction(async (tx) => {
+      // 1. まず関連するブロックを削除
+      await tx.block.deleteMany({
+        where: {
+          pageId: params.id,
+          page: {
+            userId: session.user.id // 権限チェックのため
+          }
+        },
+      });
+
+      // 2. ページを削除
+      await tx.page.delete({
+        where: {
+          id: params.id,
+          userId: session.user.id,
+        },
+      });
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
-      return NextResponse.json({ error: 'Page not found' }, { status: 404 });
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === 'P2025') {
+        return NextResponse.json({ error: 'Page not found' }, { status: 404 });
+      }
+      // その他のPrismaエラーのハンドリング
+      console.error('Prisma error deleting page:', error);
+      return NextResponse.json(
+        { error: 'Database error while deleting page' },
+        { status: 500 }
+      );
     }
-    console.error('Error deleting page:', error);
+    // 予期しないエラーのハンドリング
+    console.error('Unexpected error deleting page:', error);
     return NextResponse.json({ error: 'Failed to delete page' }, { status: 500 });
   }
 }
