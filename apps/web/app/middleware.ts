@@ -15,7 +15,6 @@ export async function middleware(request: NextRequest) {
 
   // ログインページへのアクセスをチェック
   if (request.nextUrl.pathname === "/login") {
-    // セッションが存在する場合はダッシュボードへリダイレクト
     if (authToken) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
@@ -24,7 +23,6 @@ export async function middleware(request: NextRequest) {
 
   // 保護されたルートへのアクセスをチェック
   if (!authToken && request.nextUrl.pathname.startsWith("/dashboard")) {
-    // ログインしていない場合はログインページへリダイレクト
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -33,10 +31,8 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // 保護されたルートとログインページ
     '/dashboard/:path*',
     '/login',
-    // 静的アセットとAPIルートを除外
     '/((?!api|_next/static|_next/image|assets|favicon.ico).*)',
   ],
 };
