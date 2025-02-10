@@ -136,7 +136,7 @@ export const GET = async (req: NextRequest) => {
   }
 
   try {
-    console.log("✅ Fetching pages for user:", session.user.id);
+    // console.log("✅ Fetching pages for user:", session.user.id);
     const pages = await prisma.page.findMany({
       where: {
         userId: session.user.id,
@@ -156,7 +156,7 @@ export const GET = async (req: NextRequest) => {
       orderBy: { order: "asc" },
     });
 
-    console.log("✅ Pages retrieved:", pages);
+    // console.log("✅ Pages retrieved:", pages);
     return NextResponse.json(pages);
   } catch (error) {
     console.error("🔴 Error fetching pages:", error);
