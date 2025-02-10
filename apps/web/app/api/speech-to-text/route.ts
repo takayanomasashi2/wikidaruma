@@ -65,10 +65,10 @@ export async function POST(req: Request) {
             );
         }
 
-        console.log("Received audio file:", {
-            type: audioFile.type,
-            size: audioFile.size,
-        });
+        // console.log("Received audio file:", {
+        //     type: audioFile.type,
+        //     size: audioFile.size,
+        // });
 
         // M4Aファイルを一時ディレクトリに保存
         await fs.writeFile(tempInputPath, new Uint8Array(await audioFile.arrayBuffer()));
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
                 .save(tempOutputPath);
         });
 
-        console.log("Audio converted to FLAC");
+        // console.log("Audio converted to FLAC");
 
         // Cloud Storage にアップロード
         const bucket = storage.bucket(bucketName);
@@ -94,7 +94,7 @@ export async function POST(req: Request) {
         const audioBuffer = await fs.readFile(tempOutputPath);
         await file.save(audioBuffer);
 
-        console.log("Uploaded to Cloud Storage");
+        // console.log("Uploaded to Cloud Storage");
 
         // Speech-to-Text APIの設定
         const request: protos.google.cloud.speech.v1.ILongRunningRecognizeRequest = {
@@ -109,13 +109,13 @@ export async function POST(req: Request) {
             },
         };
 
-        console.log("Sending request to Speech-to-Text API");
+        // console.log("Sending request to Speech-to-Text API");
 
         // 音声認識実行
         const [operation] = await speechClient.longRunningRecognize(request);
         const [response] = await operation.promise();
 
-        console.log("Received response from Speech-to-Text API");
+        // console.log("Received response from Speech-to-Text API");
 
         // アップロードしたファイルを削除
         await file.delete();
@@ -132,7 +132,7 @@ export async function POST(req: Request) {
             );
         }
 
-        console.log("Raw transcription:", transcription);
+        // console.log("Raw transcription:", transcription);
 
         // テキストを整形して段落に分割
         const sentences = formatJapaneseText(transcription);
@@ -149,7 +149,7 @@ export async function POST(req: Request) {
             }))
         };
 
-        console.log("Formatted content:", JSON.stringify(content, null, 2));
+        // console.log("Formatted content:", JSON.stringify(content, null, 2));
 
         return NextResponse.json({ text: JSON.stringify(content) });
     } catch (error) {

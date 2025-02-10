@@ -32,7 +32,12 @@ export const suggestionItems = createSuggestionItems([
     searchTerms: ["p", "paragraph"],
     icon: <Text size={18} />,
     command: ({ editor, range }) => {
-      editor.chain().focus().deleteRange(range).toggleNode("paragraph", "paragraph").run();
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .toggleNode("paragraph", "paragraph")
+        .run();
     },
   },
   {
@@ -50,7 +55,12 @@ export const suggestionItems = createSuggestionItems([
     searchTerms: ["title", "big", "large"],
     icon: <Heading1 size={18} />,
     command: ({ editor, range }) => {
-      editor.chain().focus().deleteRange(range).setNode("heading", { level: 1 }).run();
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .setNode("heading", { level: 1 })
+        .run();
     },
   },
   {
@@ -59,7 +69,12 @@ export const suggestionItems = createSuggestionItems([
     searchTerms: ["subtitle", "medium"],
     icon: <Heading2 size={18} />,
     command: ({ editor, range }) => {
-      editor.chain().focus().deleteRange(range).setNode("heading", { level: 2 }).run();
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .setNode("heading", { level: 2 })
+        .run();
     },
   },
   {
@@ -68,7 +83,12 @@ export const suggestionItems = createSuggestionItems([
     searchTerms: ["subtitle", "small"],
     icon: <Heading3 size={18} />,
     command: ({ editor, range }) => {
-      editor.chain().focus().deleteRange(range).setNode("heading", { level: 3 }).run();
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .setNode("heading", { level: 3 })
+        .run();
     },
   },
   {
@@ -95,14 +115,21 @@ export const suggestionItems = createSuggestionItems([
     searchTerms: ["blockquote"],
     icon: <TextQuote size={18} />,
     command: ({ editor, range }) =>
-      editor.chain().focus().deleteRange(range).toggleNode("paragraph", "paragraph").toggleBlockquote().run(),
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .toggleNode("paragraph", "paragraph")
+        .toggleBlockquote()
+        .run(),
   },
   {
     title: "コード",
     description: "コードスニペットをキャプチャします。",
     searchTerms: ["codeblock"],
     icon: <Code size={18} />,
-    command: ({ editor, range }) => editor.chain().focus().deleteRange(range).toggleCodeBlock().run(),
+    command: ({ editor, range }) =>
+      editor.chain().focus().deleteRange(range).toggleCodeBlock().run(),
   },
   {
     title: "画像",
@@ -153,33 +180,34 @@ export const suggestionItems = createSuggestionItems([
       }
     },
   },
-  {
-    title: "Twitter",
-    description: "ツイートを埋め込みます。",
-    searchTerms: ["twitter", "embed"],
-    icon: <Twitter size={18} />,
-    command: ({ editor, range }) => {
-      const tweetLink = prompt("Twitterのリンクを入力してください");
-      const tweetRegex = new RegExp(/^https?:\/\/(www\.)?x\.com\/([a-zA-Z0-9_]{1,15})(\/status\/(\d+))?(\/\S*)?$/);
+  // {
+  //   title: "Twitter",
+  //   description: "ツイートを埋め込みます。",
+  //   searchTerms: ["twitter", "embed"],
+  //   icon: <Twitter size={18} />,
+  //   command: ({ editor, range }) => {
+  //     const tweetLink = prompt("Twitterのリンクを入力してください");
+  //     const tweetRegex = new RegExp(
+  //       /^https?:\/\/(www\.)?x\.com\/([a-zA-Z0-9_]{1,15})(\/status\/(\d+))?(\/\S*)?$/,
+  //     );
 
-      if (tweetRegex.test(tweetLink)) {
-        editor
-          .chain()
-          .focus()
-          .deleteRange(range)
-          .setTweet({
-            src: tweetLink,
-          })
-          .run();
-      } else {
-        if (tweetLink !== null) {
-          alert("正しいTwitterのリンクを入力してください");
-        }
-      }
-    },
-  },
+  //     if (tweetRegex.test(tweetLink)) {
+  //       editor
+  //         .chain()
+  //         .focus()
+  //         .deleteRange(range)
+  //         .setTweet({
+  //           src: tweetLink,
+  //         })
+  //         .run();
+  //     } else {
+  //       if (tweetLink !== null) {
+  //         alert("正しいTwitterのリンクを入力してください");
+  //       }
+  //     }
+  //   },
+  // },
 ]);
-
 
 export const slashCommand = Command.configure({
   suggestion: {

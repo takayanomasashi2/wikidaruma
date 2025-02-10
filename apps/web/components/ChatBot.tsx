@@ -14,7 +14,7 @@ export function ChatBotWithImage({ userId }: ChatBotWithImageProps) {
       userId,
     },
     onResponse: (response) => {
-      console.log("Response received:", response);
+      // console.log("Response received:", response);
     },
     onError: (error) => {
       console.error("Chat error:", error);

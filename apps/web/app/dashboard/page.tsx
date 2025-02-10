@@ -59,7 +59,7 @@ export default function DashboardPage() {
     }
   }, [error, toast]);
 
-  console.log(session);
+  // console.log(session);
 
   const handleCreateNewPage = async () => {
     if (isCreatingPage || isLoading) return;
@@ -225,7 +225,7 @@ export default function DashboardPage() {
                     })),
                   };
 
-                  console.log("Generated content:", content);
+                  // console.log("Generated content:", content);
 
                   const newPage = await createPage(title, null);
                   await updatePage(newPage.id, {
